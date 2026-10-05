@@ -1,0 +1,5 @@
+glyphs drawn: 420
+glyphs drawn 0.5 px or more from their place: 99 (largest distance 0.986 px)
+adjacent pairs of drawn glyphs: 398; gap wrong by 1 px or more: 78; largest gap error 1.783 px
+of those, pairs with no space between: 345; gap wrong by 1 px or more: 67; largest gap error 1.726 px
+about-master.png and about-fixed.png: 5910 of 238336 pixels differ, by at most 213/255 in one channel

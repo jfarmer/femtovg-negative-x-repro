@@ -1,0 +1,28 @@
+# The scenes built against the femtovg checkout in femtovg/master, which run.sh makes.
+# `measure` is here because the scripts in search/ use it; it gives the same output on either
+# revision.
+[package]
+name = "repro-master"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "about-master"
+path = "../../src/about.rs"
+
+[[bin]]
+name = "menu-master"
+path = "../../src/menu.rs"
+
+[[bin]]
+name = "measure"
+path = "../../src/measure.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/master", features = ["swash", "wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }

@@ -1,0 +1,5 @@
+glyphs drawn: 935
+glyphs drawn 0.5 px or more from their place: 180 (largest distance 0.997 px)
+adjacent pairs of drawn glyphs: 897; gap wrong by 1 px or more: 119; largest gap error 1.734 px
+of those, pairs with no space between: 762; gap wrong by 1 px or more: 112; largest gap error 1.734 px
+menu-master.png and menu-fixed.png: 15236 of 357504 pixels differ, by at most 216/255 in one channel

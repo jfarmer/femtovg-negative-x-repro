@@ -1,0 +1,31 @@
+# The scenes built against the femtovg checkout in femtovg/fixed, which run.sh makes.
+# `compose` draws its captions with femtovg, so it is built here, against the fixed revision.
+[package]
+name = "repro-fixed"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "about-fixed"
+path = "../../src/about.rs"
+
+[[bin]]
+name = "menu-fixed"
+path = "../../src/menu.rs"
+
+[[bin]]
+name = "compose"
+path = "../../src/compose.rs"
+
+[[bin]]
+name = "compare"
+path = "../../src/compare.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/fixed", features = ["swash", "wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }
