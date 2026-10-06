@@ -1,6 +1,6 @@
 #!/bin/sh
-# Draws the two scenes on two femtovg revisions, composes the comparison images, and compares
-# the result with the files in images/.
+# Draws each of the three scenes on two femtovg revisions, composes the comparison images, and
+# compares the result with the files in images/.
 #
 # usage: ./run.sh
 #
@@ -10,6 +10,12 @@
 #   FIXED_URL     where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
 #   FIXED_REV     that revision (97171be, the commit of the pull request)
 #   NEW_YORK_DIR  the directory with NewYork.ttf and NewYorkItalic.ttf (/System/Library/Fonts)
+# The letter-spacing specimen is for another bug and has its own pair of revisions. Their
+# default hashes are below.
+#   SPACING_FEMTOVG_URL  where the revision with the bug is fetched from (https://github.com/femtovg/femtovg)
+#   SPACING_MASTER_REV   that revision (upstream master when the specimen was written)
+#   SPACING_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
+#   SPACING_FIXED_REV    that revision (the commit of the pull request)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -22,6 +28,10 @@ MASTER_REV=${MASTER_REV:-eb4fe53d51a6a274754a787a55179140bc7d6c77}
 FIXED_URL=${FIXED_URL:-https://github.com/jfarmer/femtovg}
 FIXED_REV=${FIXED_REV:-97171befe2f7a7afe9e60259ed59a29dd633a5fa}
 NEW_YORK_DIR=${NEW_YORK_DIR:-/System/Library/Fonts}
+SPACING_FEMTOVG_URL=${SPACING_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+SPACING_MASTER_REV=${SPACING_MASTER_REV:-485c66566bac9b4a580d2afb8d8230122d6f8457}
+SPACING_FIXED_URL=${SPACING_FIXED_URL:-https://github.com/jfarmer/femtovg}
+SPACING_FIXED_REV=${SPACING_FIXED_REV:-d6cb70df1deb1c1182f125ff49c59ed9c0344801}
 
 die() {
     echo "run.sh: $*" >&2
@@ -34,6 +44,8 @@ absolute() {
 }
 FEMTOVG_URL=$(absolute "$FEMTOVG_URL")
 FIXED_URL=$(absolute "$FIXED_URL")
+SPACING_FEMTOVG_URL=$(absolute "$SPACING_FEMTOVG_URL")
+SPACING_FIXED_URL=$(absolute "$SPACING_FIXED_URL")
 
 cd "$(dirname "$0")"
 
@@ -53,23 +65,25 @@ checkout() {
 }
 checkout master "$FEMTOVG_URL" "$MASTER_REV"
 checkout fixed "$FIXED_URL" "$FIXED_REV"
+checkout spacing-master "$SPACING_FEMTOVG_URL" "$SPACING_MASTER_REV"
+checkout spacing-fixed "$SPACING_FIXED_URL" "$SPACING_FIXED_REV"
 
-# Both builds read the fonts from the same files.
+# All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
-[ -f "$roboto" ] || die "$roboto is missing. The About panel and the captions are set in Roboto Flex, which femtovg keeps in examples/assets."
+[ -f "$roboto" ] || die "$roboto is missing. The About panel, the specimen and the captions are set in Roboto Flex, which femtovg keeps in examples/assets."
 scenes="about menu"
 for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     if [ ! -f "$font" ]; then
-        echo "run.sh: $font is missing. The menu is set in New York, which comes with macOS; set NEW_YORK_DIR if it is somewhere else. Drawing the About panel only." >&2
+        echo "run.sh: $font is missing. The menu is set in New York, which comes with macOS; set NEW_YORK_DIR if it is somewhere else. The menu card is not drawn." >&2
         scenes=about
         break
     fi
 done
 
-# One target directory for both crates, so that the dependencies are compiled once.
+# One target directory for the four crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed; do
+for revision in master fixed spacing-master spacing-fixed; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -89,11 +103,12 @@ draw() {
 }
 
 # compose <side|zoom> <scene> <x> <y> <w> <h> <output name>: the same rectangle of both renders.
-master_caption="master ($(git -C femtovg/master rev-parse --short=7 HEAD))"
+# $master_checkout is the checkout that the scene's master render was built against.
 compose() {
-    "$bin/compose" "$1" "$roboto" "out/$2-master.png" "$master_caption" "out/$2-fixed.png" "with the fix" "$3" "$4" "$5" "$6" "out/$2-$7.png"
+    "$bin/compose" "$1" "$roboto" "out/$2-master.png" "master ($(git -C "femtovg/$master_checkout" rev-parse --short=7 HEAD))" "out/$2-fixed.png" "with the fix" "$3" "$4" "$5" "$6" "out/$2-$7.png"
 }
 
+master_checkout=master
 draw about "$roboto"
 # The whole panel.
 compose side about 0 0 392 608 side-by-side
@@ -108,18 +123,34 @@ if [ "$scenes" = "about menu" ]; then
     compose zoom menu 64 218 200 74 zoom
 fi
 
+# The specimen prints one row per sample, from what fill_text returned. The two revisions lay
+# the samples out differently, so the summary has the rows of both.
+for revision in master fixed; do
+    echo "spacing-$revision:"
+    "$bin/spacing-$revision" "$roboto" "out/spacing-$revision.png"
+done >out/spacing-summary.txt
+echo "spacing-master.png and spacing-fixed.png: $("$bin/compare" out/spacing-master.png out/spacing-fixed.png)" >>out/spacing-summary.txt
+master_checkout=spacing-master
+# The whole specimen.
+compose side spacing 0 0 392 428 side-by-side
+
 echo
 for scene in $scenes; do
     echo "$scene, as femtovg/master draws it:"
     sed 's/^/  /' "out/$scene-summary.txt"
 done
+echo "spacing, as femtovg/spacing-master and femtovg/spacing-fixed draw it:"
+sed 's/^/  /' out/spacing-summary.txt
 
 echo
 echo "out/ compared with images/:"
 files=0
 different=0
-for scene in $scenes; do
-    for file in "$scene-master.png" "$scene-fixed.png" "$scene-side-by-side.png" "$scene-zoom.png" "$scene-summary.txt"; do
+for scene in $scenes spacing; do
+    zoom=$scene-zoom.png
+    # No enlargement is made of the specimen.
+    [ "$scene" != spacing ] || zoom=
+    for file in "$scene-master.png" "$scene-fixed.png" "$scene-side-by-side.png" $zoom "$scene-summary.txt"; do
         files=$((files + 1))
         if [ "${file##*.}" = png ]; then
             result=$("$bin/compare" "out/$file" "images/$file") || different=$((different + 1))

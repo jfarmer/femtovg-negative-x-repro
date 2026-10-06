@@ -1,0 +1,19 @@
+spacing-master:
+letter spacing  glyphs  TextMetrics::width()  starts at x  ends at x  ends left of x = 352 by
+        0.0 px      31               312.320       39.680    352.000                 0.000 px
+       -0.5 px      31               312.320       39.680    336.500                15.500 px
+       -1.0 px      31               312.320       39.680    321.000                31.000 px
+       -1.5 px      31               312.320       39.680    305.500                46.500 px
+       -2.0 px      31               312.320       39.680    290.000                62.000 px
+       -2.5 px      31               312.320       39.680    274.500                77.500 px
+last column, sum over the 6 lines: 232.500 px; largest: 77.500 px
+spacing-fixed:
+letter spacing  glyphs  TextMetrics::width()  starts at x  ends at x  ends left of x = 352 by
+        0.0 px      31               312.320       39.680    352.000                 0.000 px
+       -0.5 px      31               296.820       55.180    352.000                 0.000 px
+       -1.0 px      31               281.320       70.680    352.000                 0.000 px
+       -1.5 px      31               265.820       86.180    352.000                 0.000 px
+       -2.0 px      31               250.320      101.680    352.000                 0.000 px
+       -2.5 px      31               234.820      117.180    352.000                 0.000 px
+last column, sum over the 6 lines: 0.000 px; largest: 0.000 px
+spacing-master.png and spacing-fixed.png: 19198 of 167776 pixels differ, by at most 235/255 in one channel
