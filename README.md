@@ -241,15 +241,15 @@ different pixels.
 | `FEMTOVG_URL`         | `https://github.com/femtovg/femtovg`       | where the revision with the glyph-mask bug is                       |
 | `MASTER_REV`          | `eb4fe53d51a6a274754a787a55179140bc7d6c77` | upstream master when the About panel and the menu card were written |
 | `FIXED_URL`           | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
-| `FIXED_REV`           | `97171befe2f7a7afe9e60259ed59a29dd633a5fa` | the commit of the first pull request                                |
+| `FIXED_REV`           | `b064093e871bfc08404d86fb0ca3dc52b43d2e79` | the commit of the first pull request                                |
 | `SPACING_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`       | where the revision with the letter-spacing bug is                   |
 | `SPACING_MASTER_REV`  | `485c66566bac9b4a580d2afb8d8230122d6f8457` | upstream master when the specimen was written                       |
 | `SPACING_FIXED_URL`   | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
-| `SPACING_FIXED_REV`   | `d6cb70df1deb1c1182f125ff49c59ed9c0344801` | the commit of the second pull request                               |
+| `SPACING_FIXED_REV`   | `2bd54638cb7d5d9e2a5337cbf9856d2638eadfdd` | the commit of the second pull request                               |
 | `GRADIENT_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`      | where the revision with the gradient bug is                         |
 | `GRADIENT_MASTER_REV` | `6dd55434177690c845fc5e6f8e9d5a2fe6f1b277` | upstream master when the gradient scenes were written               |
 | `GRADIENT_FIXED_URL`  | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
-| `GRADIENT_FIXED_REV`  | `aee26d6d0280767f423bc4f15a9d89888e1a7429` | the commit of the third pull request                                |
+| `GRADIENT_FIXED_REV`  | `38d649c699b339f040a2e8f8a13ed28e1644baf7` | the commit of the third pull request                                |
 
 The first four are for the About panel and the menu card, the next four for the specimen and
 the last four for the two gradient scenes. A URL may be the path of a local clone. A revision

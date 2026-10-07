@@ -8,7 +8,7 @@
 #   FEMTOVG_URL   where the revision with the bug is fetched from (https://github.com/femtovg/femtovg)
 #   MASTER_REV    that revision (eb4fe53, upstream master when this was written)
 #   FIXED_URL     where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
-#   FIXED_REV     that revision (97171be, the commit of the pull request)
+#   FIXED_REV     that revision (b064093, the commit of the pull request)
 #   NEW_YORK_DIR  the directory with NewYork.ttf and NewYorkItalic.ttf (/System/Library/Fonts)
 # The letter-spacing specimen is for another bug and has its own pair of revisions. Their
 # default hashes are below.
@@ -31,16 +31,16 @@ set -eu
 FEMTOVG_URL=${FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 MASTER_REV=${MASTER_REV:-eb4fe53d51a6a274754a787a55179140bc7d6c77}
 FIXED_URL=${FIXED_URL:-https://github.com/jfarmer/femtovg}
-FIXED_REV=${FIXED_REV:-97171befe2f7a7afe9e60259ed59a29dd633a5fa}
+FIXED_REV=${FIXED_REV:-b064093e871bfc08404d86fb0ca3dc52b43d2e79}
 NEW_YORK_DIR=${NEW_YORK_DIR:-/System/Library/Fonts}
 SPACING_FEMTOVG_URL=${SPACING_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 SPACING_MASTER_REV=${SPACING_MASTER_REV:-485c66566bac9b4a580d2afb8d8230122d6f8457}
 SPACING_FIXED_URL=${SPACING_FIXED_URL:-https://github.com/jfarmer/femtovg}
-SPACING_FIXED_REV=${SPACING_FIXED_REV:-d6cb70df1deb1c1182f125ff49c59ed9c0344801}
+SPACING_FIXED_REV=${SPACING_FIXED_REV:-2bd54638cb7d5d9e2a5337cbf9856d2638eadfdd}
 GRADIENT_FEMTOVG_URL=${GRADIENT_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 GRADIENT_MASTER_REV=${GRADIENT_MASTER_REV:-6dd55434177690c845fc5e6f8e9d5a2fe6f1b277}
 GRADIENT_FIXED_URL=${GRADIENT_FIXED_URL:-https://github.com/jfarmer/femtovg}
-GRADIENT_FIXED_REV=${GRADIENT_FIXED_REV:-aee26d6d0280767f423bc4f15a9d89888e1a7429}
+GRADIENT_FIXED_REV=${GRADIENT_FIXED_REV:-38d649c699b339f040a2e8f8a13ed28e1644baf7}
 
 die() {
     echo "run.sh: $*" >&2
