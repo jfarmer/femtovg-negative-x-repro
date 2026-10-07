@@ -45,7 +45,7 @@ the glyph atlas. The bottom line is 100 px and is drawn as outlines.
 
 ![Gradient text on master and with the fix](images/gradient-text-side-by-side.png)
 
-One 100 px line with a gradient that goes from opaque to transparent, and its shadow below it.
+One 100 px line with a gradient that goes from opaque to transparent, under a blurred shadow.
 
 ![Gradient text and its shadow on master and with the fix](images/gradient-shadow-side-by-side.png)
 
@@ -198,12 +198,13 @@ the gradient goes from opaque red to transparent red.
 ```rust
 let paint = Paint::linear_gradient(40.0, 0.0, 680.0, 0.0, red, transparent_red); // and the font, 100 px
 canvas.set_shadow_color(Color::black());
-canvas.set_shadow_offset(0.0, 110.0);
-canvas.fill_text(360.0, 65.0, "Gradient text", &paint)?;
+canvas.set_shadow_offset(0.0, 18.0);
+canvas.set_shadow_blur(14.0);
+canvas.fill_text(360.0, 115.0, "Gradient text", &paint)?;
 ```
 
-On master the text and its shadow both fade inside every letter. With the fix both fade once,
-from the left end of the line to the right end.
+On master the text fades inside every letter, and every letter has its own patch of shadow. With
+the fix the text and its shadow both fade once, from the left end of the line to the right end.
 
 ### What was chosen to make the effect easy to see
 
@@ -215,8 +216,8 @@ Nothing was searched for. These were chosen by hand:
   look like.
 - A gradient to transparent in the shadow scene, because a shadow takes only its alpha from the
   paint.
-- A shadow offset of 110 px, which is more than the height of the line. The shadow is then below
-  the text and does not overlap it.
+- A shadow that is 18 px below the text and blurred by 14 px. It stays visible under the
+  letters and looks like a shadow.
 
 [`src/gradient.rs`](src/gradient.rs) draws both scenes. It prints nothing, so
 [`images/gradient-text-summary.txt`](images/gradient-text-summary.txt) and

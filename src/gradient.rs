@@ -12,8 +12,8 @@
 //! 100 px and is drawn as outlines.
 //!
 //! `shadow` draws one 100 px line with a gradient that goes from opaque to transparent, under a
-//! canvas shadow. A shadow has the shadow colour and the alpha of what was drawn, so it fades the
-//! way the text does.
+//! blurred canvas shadow. A shadow has the shadow colour and the alpha of what was drawn, so it
+//! fades the way the text does.
 
 mod offscreen;
 
@@ -29,9 +29,10 @@ const OUTLINE_SIZE: f32 = 100.0;
 /// The gradient starts and ends 40 px inside the canvas, which is about where the lines do.
 const GRADIENT_START: f32 = 40.0;
 const GRADIENT_END: f32 = WIDTH as f32 - 40.0;
-/// The shadow is drawn this far below the text, which is further than the line is tall, so the
-/// two do not overlap.
-const SHADOW_OFFSET_Y: f32 = 110.0;
+/// The shadow is drawn this far below the text and blurred, so that it shows as a soft shadow
+/// under every letter.
+const SHADOW_OFFSET_Y: f32 = 18.0;
+const SHADOW_BLUR: f32 = 14.0;
 
 /// A horizontal gradient from red at `GRADIENT_START` to `end` at `GRADIENT_END`, for text
 /// centred on the x and y it is drawn at.
@@ -60,8 +61,9 @@ fn draw_shadow(canvas: &mut Canvas<WGPURenderer>, font: FontId) {
     let paint = gradient(font, transparent_red).with_font_size(OUTLINE_SIZE);
     canvas.set_shadow_color(Color::black());
     canvas.set_shadow_offset(0.0, SHADOW_OFFSET_Y);
+    canvas.set_shadow_blur(SHADOW_BLUR);
     canvas
-        .fill_text(WIDTH as f32 / 2.0, 65.0, WORDS, &paint)
+        .fill_text(WIDTH as f32 / 2.0, 115.0, WORDS, &paint)
         .expect("fill_text");
 }
 
