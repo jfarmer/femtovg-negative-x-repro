@@ -1,7 +1,7 @@
-# femtovg: comparison images for two text bugs
+# femtovg: comparison images for three text bugs
 
-The programs that made the comparison images for two pull requests to
-[femtovg](https://github.com/femtovg/femtovg). In each of the three images below, the left half
+The programs that made the comparison images for three pull requests to
+[femtovg](https://github.com/femtovg/femtovg). In each of the five images below, the left half
 is a scene built against upstream master and the right half is the same scene built against the
 commit of its pull request. Both halves are drawn at device pixel ratio 1 and nothing is
 rescaled.
@@ -33,6 +33,21 @@ A letter-spacing specimen, Roboto Flex 28 px. Every line is drawn with `Align::R
 same x, which is 4 px left of the red rule:
 
 ![Letter-spacing specimen on master and with the fix](images/spacing-side-by-side.png)
+
+The third pull request fixes the gradient bug. When femtovg draws the glyphs of a text as
+outlines, a gradient or image paint is applied to each glyph separately, so a gradient starts
+again in every letter. The left half is upstream master at
+[`6dd5543`](https://github.com/femtovg/femtovg/commit/6dd55434177690c845fc5e6f8e9d5a2fe6f1b277).
+The font sizes and the gradients were chosen by hand (see below).
+
+Two lines with one gradient across the canvas, Roboto Flex. The top line is 90 px and comes from
+the glyph atlas. The bottom line is 100 px and is drawn as outlines.
+
+![Gradient text on master and with the fix](images/gradient-text-side-by-side.png)
+
+One 100 px line with a gradient that goes from opaque to transparent, and its shadow below it.
+
+![Gradient text and its shadow on master and with the fix](images/gradient-shadow-side-by-side.png)
 
 `images/` also has each whole render, and a 4x enlargement of part of the About panel and of
 the menu card.
@@ -146,6 +161,68 @@ every value in it is 0 px. [`src/spacing.rs`](src/spacing.rs) computes these num
 `TextMetrics` that `fill_text` returned, on both revisions. They are not measured from pixels.
 [`images/spacing-summary.txt`](images/spacing-summary.txt) has all of them.
 
+## The gradient bug
+
+This bug does not need the `swash` feature either, and the two scenes are built without it.
+
+femtovg draws a glyph from the glyph atlas or as an outline. `draw_glyph_run` in `src/lib.rs`
+chooses the outline for text larger than 92 px, and for text with a gradient or image paint
+under a scale, rotation, skew or flip. `render_direct` in `src/text.rs` then fills or strokes
+the outline of each glyph as a path.
+
+On master `render_direct` places each glyph by changing the canvas transform. For every glyph it
+calls `save()`, `translate()` and `scale()`, draws the outline, and calls `restore()`. The
+canvas transform also maps the coordinates of the paint. So the paint is mapped again for every
+glyph, in that glyph's font units and from that glyph's origin, and each letter gets its own
+small copy of the gradient. With the fix `render_direct` does not change the canvas transform.
+It passes the glyph's placement along with the outline, and the paint is mapped by the canvas
+transform as for any other shape.
+
+The first scene draws the same words twice with one paint.
+
+```rust
+let paint = Paint::linear_gradient(40.0, 0.0, 680.0, 0.0, red, blue); // and the font and alignment
+canvas.fill_text(360.0, 65.0, "Gradient text", &paint.clone().with_font_size(90.0))?;
+canvas.fill_text(360.0, 180.0, "Gradient text", &paint.with_font_size(100.0))?;
+```
+
+The 90 px line comes from the glyph atlas and is the same on both revisions. The 100 px line is
+drawn as outlines. On master every letter of it has its own gradient. With the fix the gradient
+runs across the line, as it does in the line above.
+
+The second scene shows the same fault in a shadow. femtovg builds a shadow by drawing the text a
+second time into an offscreen image and giving the result the shadow colour, so a shadow has
+the alpha of what was drawn. It is wrong only when the alpha of the paint varies. In this scene
+the gradient goes from opaque red to transparent red.
+
+```rust
+let paint = Paint::linear_gradient(40.0, 0.0, 680.0, 0.0, red, transparent_red); // and the font, 100 px
+canvas.set_shadow_color(Color::black());
+canvas.set_shadow_offset(0.0, 110.0);
+canvas.fill_text(360.0, 65.0, "Gradient text", &paint)?;
+```
+
+On master the text and its shadow both fade inside every letter. With the fix both fade once,
+from the left end of the line to the right end.
+
+### What was chosen to make the effect easy to see
+
+Nothing was searched for. These were chosen by hand:
+
+- Font sizes of 90 px and 100 px, one on each side of the 92 px limit. One picture then shows
+  text from the glyph atlas and text drawn as outlines with the same paint.
+- A gradient that spans the canvas, so that the 90 px line shows what the 100 px line should
+  look like.
+- A gradient to transparent in the shadow scene, because a shadow takes only its alpha from the
+  paint.
+- A shadow offset of 110 px, which is more than the height of the line. The shadow is then below
+  the text and does not overlap it.
+
+[`src/gradient.rs`](src/gradient.rs) draws both scenes. It prints nothing, so
+[`images/gradient-text-summary.txt`](images/gradient-text-summary.txt) and
+[`images/gradient-shadow-summary.txt`](images/gradient-shadow-summary.txt) have only the number
+of pixels in which the two revisions differ.
+
 ## Running it
 
 ```sh
@@ -168,12 +245,17 @@ different pixels.
 | `SPACING_MASTER_REV`  | `485c66566bac9b4a580d2afb8d8230122d6f8457` | upstream master when the specimen was written                       |
 | `SPACING_FIXED_URL`   | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
 | `SPACING_FIXED_REV`   | `d6cb70df1deb1c1182f125ff49c59ed9c0344801` | the commit of the second pull request                               |
+| `GRADIENT_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`      | where the revision with the gradient bug is                         |
+| `GRADIENT_MASTER_REV` | `6dd55434177690c845fc5e6f8e9d5a2fe6f1b277` | upstream master when the gradient scenes were written               |
+| `GRADIENT_FIXED_URL`  | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
+| `GRADIENT_FIXED_REV`  | `aee26d6d0280767f423bc4f15a9d89888e1a7429` | the commit of the third pull request                                |
 
-The first four are for the About panel and the menu card, the last four for the specimen. A
-URL may be the path of a local clone. A revision is a full commit hash, or the name of a
-branch or tag. If a pull request has changed since this was written, run
-`FIXED_REV=glyph-mask-phase-keys ./run.sh` or
-`SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh`.
+The first four are for the About panel and the menu card, the next four for the specimen and
+the last four for the two gradient scenes. A URL may be the path of a local clone. A revision
+is a full commit hash, or the name of a branch or tag. If a pull request has changed since this
+was written, run `FIXED_REV=glyph-mask-phase-keys ./run.sh`,
+`SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh` or
+`GRADIENT_FIXED_REV=gradient-on-direct-text ./run.sh`.
 
 No font file is in this repository. Roboto Flex is read from femtovg's `examples/assets`.
 New York is an Apple system font, read from `/System/Library/Fonts` or from `NEW_YORK_DIR`.

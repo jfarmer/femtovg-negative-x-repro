@@ -1,0 +1,1 @@
+gradient-text-master.png and gradient-text-fixed.png: 13917 of 180000 pixels differ, by at most 170/255 in one channel

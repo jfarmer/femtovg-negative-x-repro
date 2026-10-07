@@ -1,5 +1,5 @@
 #!/bin/sh
-# Draws each of the three scenes on two femtovg revisions, composes the comparison images, and
+# Draws each of the five scenes on two femtovg revisions, composes the comparison images, and
 # compares the result with the files in images/.
 #
 # usage: ./run.sh
@@ -16,6 +16,11 @@
 #   SPACING_MASTER_REV   that revision (upstream master when the specimen was written)
 #   SPACING_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
 #   SPACING_FIXED_REV    that revision (the commit of the pull request)
+# The two gradient scenes are for a third bug and have their own pair of revisions too.
+#   GRADIENT_FEMTOVG_URL  where the revision with the bug is fetched from (https://github.com/femtovg/femtovg)
+#   GRADIENT_MASTER_REV   that revision (upstream master when the scenes were written)
+#   GRADIENT_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
+#   GRADIENT_FIXED_REV    that revision (the commit of the pull request)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -32,6 +37,10 @@ SPACING_FEMTOVG_URL=${SPACING_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 SPACING_MASTER_REV=${SPACING_MASTER_REV:-485c66566bac9b4a580d2afb8d8230122d6f8457}
 SPACING_FIXED_URL=${SPACING_FIXED_URL:-https://github.com/jfarmer/femtovg}
 SPACING_FIXED_REV=${SPACING_FIXED_REV:-d6cb70df1deb1c1182f125ff49c59ed9c0344801}
+GRADIENT_FEMTOVG_URL=${GRADIENT_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+GRADIENT_MASTER_REV=${GRADIENT_MASTER_REV:-6dd55434177690c845fc5e6f8e9d5a2fe6f1b277}
+GRADIENT_FIXED_URL=${GRADIENT_FIXED_URL:-https://github.com/jfarmer/femtovg}
+GRADIENT_FIXED_REV=${GRADIENT_FIXED_REV:-aee26d6d0280767f423bc4f15a9d89888e1a7429}
 
 die() {
     echo "run.sh: $*" >&2
@@ -46,6 +55,8 @@ FEMTOVG_URL=$(absolute "$FEMTOVG_URL")
 FIXED_URL=$(absolute "$FIXED_URL")
 SPACING_FEMTOVG_URL=$(absolute "$SPACING_FEMTOVG_URL")
 SPACING_FIXED_URL=$(absolute "$SPACING_FIXED_URL")
+GRADIENT_FEMTOVG_URL=$(absolute "$GRADIENT_FEMTOVG_URL")
+GRADIENT_FIXED_URL=$(absolute "$GRADIENT_FIXED_URL")
 
 cd "$(dirname "$0")"
 
@@ -67,6 +78,8 @@ checkout master "$FEMTOVG_URL" "$MASTER_REV"
 checkout fixed "$FIXED_URL" "$FIXED_REV"
 checkout spacing-master "$SPACING_FEMTOVG_URL" "$SPACING_MASTER_REV"
 checkout spacing-fixed "$SPACING_FIXED_URL" "$SPACING_FIXED_REV"
+checkout gradient-master "$GRADIENT_FEMTOVG_URL" "$GRADIENT_MASTER_REV"
+checkout gradient-fixed "$GRADIENT_FIXED_URL" "$GRADIENT_FIXED_REV"
 
 # All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
@@ -80,10 +93,10 @@ for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     fi
 done
 
-# One target directory for the four crates, so that the dependencies are compiled once.
+# One target directory for the six crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed spacing-master spacing-fixed; do
+for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -134,6 +147,18 @@ master_checkout=spacing-master
 # The whole specimen.
 compose side spacing 0 0 392 428 side-by-side
 
+# The gradient scenes print nothing, so their summaries have only the pixel comparison.
+for scene in text shadow; do
+    for revision in master fixed; do
+        "$bin/gradient-$revision" "$roboto" "$scene" "out/gradient-$scene-$revision.png"
+    done
+    echo "gradient-$scene-master.png and gradient-$scene-fixed.png: $("$bin/compare" "out/gradient-$scene-master.png" "out/gradient-$scene-fixed.png")" >"out/gradient-$scene-summary.txt"
+done
+master_checkout=gradient-master
+# The whole of both scenes.
+compose side gradient-text 0 0 720 250 side-by-side
+compose side gradient-shadow 0 0 720 250 side-by-side
+
 echo
 for scene in $scenes; do
     echo "$scene, as femtovg/master draws it:"
@@ -141,15 +166,19 @@ for scene in $scenes; do
 done
 echo "spacing, as femtovg/spacing-master and femtovg/spacing-fixed draw it:"
 sed 's/^/  /' out/spacing-summary.txt
+echo "the gradient scenes, as femtovg/gradient-master and femtovg/gradient-fixed draw them:"
+sed 's/^/  /' out/gradient-text-summary.txt out/gradient-shadow-summary.txt
 
 echo
 echo "out/ compared with images/:"
 files=0
 different=0
-for scene in $scenes spacing; do
-    zoom=$scene-zoom.png
-    # No enlargement is made of the specimen.
-    [ "$scene" != spacing ] || zoom=
+for scene in $scenes spacing gradient-text gradient-shadow; do
+    # An enlargement is made of the About panel and of the menu card only.
+    case $scene in
+    about | menu) zoom=$scene-zoom.png ;;
+    *) zoom= ;;
+    esac
     for file in "$scene-master.png" "$scene-fixed.png" "$scene-side-by-side.png" $zoom "$scene-summary.txt"; do
         files=$((files + 1))
         if [ "${file##*.}" = png ]; then
@@ -160,7 +189,7 @@ for scene in $scenes spacing; do
             result=differs
             different=$((different + 1))
         fi
-        printf '  %-26s %s\n' "$file" "$result"
+        printf '  %-32s %s\n' "$file" "$result"
     done
 done
 [ "$scenes" = "about menu" ] || echo "  the menu images were not made (see above)"

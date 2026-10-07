@@ -1,0 +1,1 @@
+gradient-shadow-master.png and gradient-shadow-fixed.png: 27832 of 180000 pixels differ, by at most 228/255 in one channel
