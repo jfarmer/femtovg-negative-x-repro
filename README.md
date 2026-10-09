@@ -1,5 +1,9 @@
 # femtovg: comparison images for three text bugs
 
+The [portable profiling harness](profiling/README.md) compares CPU work for the
+direct-text gradient fix (#389), with draw/flush timing, allocation accounting,
+macOS Instruments capture, and a Linux `perf` collector.
+
 The programs that made the comparison images for three pull requests to
 [femtovg](https://github.com/femtovg/femtovg). In each of the five images below, the left half
 is a scene built against upstream master and the right half is the same scene built against the
