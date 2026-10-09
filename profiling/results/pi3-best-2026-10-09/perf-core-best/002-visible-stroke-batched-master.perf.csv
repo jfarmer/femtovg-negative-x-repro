@@ -1,0 +1,6 @@
+# started on Fri Oct  9 16:25:27 2026
+
+808259540;;cycles;686236930;100.00;;
+546981316;;instructions;686236930;100.00;0.68;insn per cycle
+49395500;;branches;686236930;100.00;;
+5404185;;branch-misses;686236930;100.00;10.94;of all branches

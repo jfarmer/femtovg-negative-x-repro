@@ -1,0 +1,18 @@
+{
+  "board": "Raspberry Pi 3 Model B Rev 1.2",
+  "os_release": "PRETTY_NAME=\"Raspbian GNU/Linux 12 (bookworm)\"\nNAME=\"Raspbian GNU/Linux\"\nVERSION_ID=\"12\"\nVERSION=\"12 (bookworm)\"\nVERSION_CODENAME=bookworm\nID=raspbian\nID_LIKE=debian\nHOME_URL=\"http://www.raspbian.org/\"\nSUPPORT_URL=\"http://www.raspbian.org/RaspbianForums\"\nBUG_REPORT_URL=\"http://www.raspbian.org/RaspbianBugs\"\n",
+  "kernel": {
+    "system": "Linux",
+    "node": "rpi-bookworm-armhf",
+    "release": "6.1.21-v7+",
+    "version": "#1642 SMP Mon Apr  3 17:20:52 BST 2023",
+    "machine": "armv7l",
+    "processor": ""
+  },
+  "caches": {
+    "L1I_bytes": 32768,
+    "L1D_bytes": 32768,
+    "L2_bytes": 524288,
+    "cache_line_bytes": 64
+  }
+}

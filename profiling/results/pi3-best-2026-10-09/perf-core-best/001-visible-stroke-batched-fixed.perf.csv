@@ -1,0 +1,6 @@
+# started on Fri Oct  9 16:25:23 2026
+
+777611791;;cycles;660741360;100.00;;
+523754376;;instructions;660741360;100.00;0.67;insn per cycle
+46186946;;branches;660741360;100.00;;
+4967888;;branch-misses;660741360;100.00;10.76;of all branches

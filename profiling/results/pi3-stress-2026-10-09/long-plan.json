@@ -1,0 +1,41 @@
+[
+  {
+    "case": "tiny-path-fill",
+    "draws": 512,
+    "working_set": 16,
+    "glyph_percent": 50,
+    "order": "grouped",
+    "shape": "rectangle",
+    "paint": "solid",
+    "aa": true,
+    "seed": 389,
+    "motion": "stationary",
+    "id": "tiny-path-fill-512-16-50-grouped-rectangle-solid-true-389-stationary"
+  },
+  {
+    "case": "cache-glyph-fill",
+    "draws": 2048,
+    "working_set": 64,
+    "glyph_percent": 50,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "gradient",
+    "aa": true,
+    "seed": 389,
+    "motion": "moving",
+    "id": "cache-glyph-fill-2048-64-50-grouped-triangle-gradient-true-389-moving"
+  },
+  {
+    "case": "mixed-fill",
+    "draws": 1024,
+    "working_set": 16,
+    "glyph_percent": 50,
+    "order": "shuffled",
+    "shape": "triangle",
+    "paint": "solid",
+    "aa": true,
+    "seed": 389,
+    "motion": "stationary",
+    "id": "mixed-fill-1024-16-50-shuffled-triangle-solid-true-389-stationary"
+  }
+]

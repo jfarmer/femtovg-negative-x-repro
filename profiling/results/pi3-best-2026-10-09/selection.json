@@ -1,0 +1,145 @@
+[
+  {
+    "id": "offscreen-fill-batched",
+    "family": "offscreen-overlap",
+    "timing": {
+      "max": -17.335215174461727,
+      "median": -18.685380791652506,
+      "min": -29.618305308075133,
+      "n": 3,
+      "p25": -24.15184304986382,
+      "p75": -18.010297983057114
+    },
+    "promoted": true
+  },
+  {
+    "id": "mostly-offscreen-fill-batched",
+    "family": "offscreen-overlap",
+    "timing": {
+      "max": -11.746963793128096,
+      "median": -14.863116504938901,
+      "min": -19.130465485774863,
+      "n": 3,
+      "p25": -16.996790995356882,
+      "p75": -13.305040149033498
+    },
+    "promoted": false
+  },
+  {
+    "id": "visible-stroke-batched",
+    "family": "visible-overlap",
+    "timing": {
+      "max": -8.628941364936061,
+      "median": -12.475863215056993,
+      "min": -18.51531592461344,
+      "n": 3,
+      "p25": -15.495589569835216,
+      "p75": -10.552402289996527
+    },
+    "promoted": true
+  },
+  {
+    "id": "visible-fill-grid",
+    "family": "spaced-scenes",
+    "timing": {
+      "max": 10.398738045741784,
+      "median": -2.3101221641374514,
+      "min": -3.434281856506216,
+      "n": 3,
+      "p25": -2.8722020103218338,
+      "p75": 4.044307940802167
+    },
+    "promoted": true
+  },
+  {
+    "id": "rotated-labels-stroke",
+    "family": "spaced-scenes",
+    "timing": {
+      "max": 4.448553661859944,
+      "median": -0.4678084900995305,
+      "min": -2.919828266663438,
+      "n": 3,
+      "p25": -1.6938183783814842,
+      "p75": 1.9903725858802068
+    },
+    "promoted": false
+  },
+  {
+    "id": "visible-fill-batched-aa",
+    "family": "visible-overlap",
+    "timing": {
+      "max": 6.998510732332153,
+      "median": 0.36583426571548117,
+      "min": -14.301207995007658,
+      "n": 3,
+      "p25": -6.9676868646460886,
+      "p75": 3.682172499023817
+    },
+    "promoted": false
+  },
+  {
+    "id": "visible-fill-unbatched",
+    "family": "visible-overlap",
+    "timing": {
+      "max": 14.174497657813468,
+      "median": 0.4100537214821509,
+      "min": -12.990331009213351,
+      "n": 3,
+      "p25": -6.2901386438656,
+      "p75": 7.29227568964781
+    },
+    "promoted": false
+  },
+  {
+    "id": "mostly-offscreen-fill-grid",
+    "family": "spaced-scenes",
+    "timing": {
+      "max": 2.0265817332506986,
+      "median": 1.0538624058065382,
+      "min": -8.497110050221956,
+      "n": 3,
+      "p25": -3.721623822207709,
+      "p75": 1.5402220695286184
+    },
+    "promoted": false
+  },
+  {
+    "id": "visible-fill-batched",
+    "family": "visible-overlap",
+    "timing": {
+      "max": 10.221310205908418,
+      "median": 1.2396790688532056,
+      "min": -17.52423369397316,
+      "n": 3,
+      "p25": -8.142277312559976,
+      "p75": 5.730494637380812
+    },
+    "promoted": false
+  },
+  {
+    "id": "small-labels-atlas-control",
+    "family": "control",
+    "timing": {
+      "max": 15.11457386564896,
+      "median": 9.38028618883946,
+      "min": -0.4415719580821098,
+      "n": 3,
+      "p25": 4.469357115378674,
+      "p75": 12.24743002724421
+    },
+    "promoted": false
+  },
+  {
+    "id": "rotated-labels-fill",
+    "family": "spaced-scenes",
+    "timing": {
+      "max": 14.23418699520913,
+      "median": 9.588695334509367,
+      "min": -2.0497347444840996,
+      "n": 3,
+      "p25": 3.769480295012634,
+      "p75": 11.911441164859248
+    },
+    "promoted": false
+  }
+]

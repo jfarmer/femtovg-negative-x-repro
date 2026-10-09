@@ -1,0 +1,9 @@
+{"phase": "scout-existing-start", "governor": "performance", "frequency_khz": "1200000", "throttled": "throttled=0x0", "temp": "temp=39.2'C"}
+{"phase": "scout-existing-end", "governor": "performance", "frequency_khz": "1200000", "throttled": "throttled=0x0", "temp": "temp=45.1'C"}
+{"phase": "scout-best-start", "utc": "2026-10-09T16:23:49Z", "governor": "performance", "frequency_khz": 1200000, "throttled": "throttled=0x0", "temperature": "temp=49.4'C"}
+{"phase": "scout-best-end", "utc": "2026-10-09T16:24:28Z", "governor": "performance", "frequency_khz": 1200000, "throttled": "throttled=0x0", "temperature": "temp=48.9'C"}
+{"phase": "confirm-best-start", "utc": "2026-10-09T16:24:28Z", "governor": "performance", "frequency_khz": 1200000, "throttled": "throttled=0x0", "temperature": "temp=48.9'C"}
+{"phase": "confirm-best-end", "utc": "2026-10-09T16:25:17Z", "governor": "performance", "frequency_khz": 1200000, "throttled": "throttled=0x0", "temperature": "temp=48.3'C"}
+{"phase": "perf-core-best-start", "utc": "2026-10-09T16:25:17Z", "governor": "performance", "frequency_khz": 1200000, "throttled": "throttled=0x0", "temperature": "temp=48.9'C"}
+{"phase": "perf-core-best-end", "utc": "2026-10-09T16:25:29Z", "governor": "performance", "frequency_khz": 1200000, "throttled": "throttled=0x0", "temperature": "temp=48.3'C"}
+{"phase": "restored-ondemand", "utc": "2026-10-09T16:25:29Z", "governor": "ondemand", "frequency_khz": 1200000, "throttled": "throttled=0x0", "temperature": "temp=48.3'C"}

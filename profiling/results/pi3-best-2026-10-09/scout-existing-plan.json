@@ -1,0 +1,80 @@
+[
+  {
+    "id": "mixed-fill-true",
+    "case": "mixed-fill",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "solid",
+    "aa": true,
+    "seed": 389,
+    "motion": "stationary"
+  },
+  {
+    "id": "mixed-fill-false",
+    "case": "mixed-fill",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "solid",
+    "aa": false,
+    "seed": 389,
+    "motion": "stationary"
+  },
+  {
+    "id": "mixed-stroke-true",
+    "case": "mixed-stroke",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "solid",
+    "aa": true,
+    "seed": 389,
+    "motion": "stationary"
+  },
+  {
+    "id": "mixed-stroke-false",
+    "case": "mixed-stroke",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "solid",
+    "aa": false,
+    "seed": 389,
+    "motion": "stationary"
+  },
+  {
+    "id": "cache-one-stationary",
+    "case": "cache-glyph-fill",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "gradient",
+    "aa": true,
+    "seed": 389,
+    "motion": "stationary"
+  },
+  {
+    "id": "cache-one-moving",
+    "case": "cache-glyph-fill",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "gradient",
+    "aa": true,
+    "seed": 389,
+    "motion": "moving"
+  }
+]

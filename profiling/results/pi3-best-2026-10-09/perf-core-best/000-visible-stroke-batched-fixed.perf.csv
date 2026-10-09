@@ -1,0 +1,6 @@
+# started on Fri Oct  9 16:25:20 2026
+
+753627713;;cycles;640768069;100.00;;
+523548288;;instructions;640768069;100.00;0.69;insn per cycle
+46163088;;branches;640768069;100.00;;
+4976735;;branch-misses;640768069;100.00;10.78;of all branches

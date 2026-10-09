@@ -1,0 +1,38 @@
+[
+  {
+    "id": "offscreen-fill-batched",
+    "case": "best-fill",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "solid",
+    "aa": false,
+    "seed": 389,
+    "motion": "stationary",
+    "batch": true,
+    "visible_percent": 0,
+    "font_size": 100,
+    "rotation": 0,
+    "layout": "overlap"
+  },
+  {
+    "id": "visible-stroke-batched",
+    "case": "best-stroke",
+    "draws": 512,
+    "working_set": 1,
+    "glyph_percent": 100,
+    "order": "grouped",
+    "shape": "triangle",
+    "paint": "solid",
+    "aa": false,
+    "seed": 389,
+    "motion": "stationary",
+    "batch": true,
+    "visible_percent": 100,
+    "font_size": 100,
+    "rotation": 0,
+    "layout": "overlap"
+  }
+]

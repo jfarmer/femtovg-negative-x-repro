@@ -117,6 +117,109 @@ python3 profiling/profile.py mark-validation out/timing --reason 'Concurrent CPU
 This annotates `experiment.json` and adds a notice to generated reports.
 Regenerating timing reports preserves the notice. Raw samples are unchanged.
 
+## Adversarial CPU workloads
+
+`stress.py` drives three families through the same two pinned executables:
+
+| Family | Parameters | Intended pressure |
+| --- | --- | --- |
+| Tiny ordinary paths | Convex triangles/rectangles and stroked lines; AA on/off; 64, 512, 4096 draws | Shared-helper overhead without per-glyph save/restore savings |
+| Cached glyph fills | 1, 4, 16, 64, 256, 1024 representations; grouped/shuffled; fixed/moving positions; 2048 draws | Data locality, working-set growth, and outline rebuilds |
+| Mixed paths/glyphs | Fills/strokes; 10/50/90% glyphs; grouped/shuffled; solid/gradient; 1024 draws | Transform-selection branches and mixed callers |
+
+All shapes, positioned glyphs, font-variation coordinates, and seeded schedules
+are prepared before timing. Paths persist across frames. Each cached glyph
+representation has one fixed position; the shuffled stationary case changes
+access order without changing the representation's transform. Larger glyph
+working sets use printable ASCII and distinct normalized weight variations.
+Font size alone does **not** create a distinct outline cache entry in these
+revisions. The cache workload reads the font's `fvar` axis order and requires
+a variable font with a `wght` axis; the bundled Roboto Flex satisfies that.
+Single-glyph placement comes from the default-weight layout; the positioned
+outline draws deliberately vary weight while retaining those placements.
+
+The mixed case repeatedly draws one cached `I` at one position among persistent
+paths. This synthetic overdraw minimizes geometry work to expose caller/helper
+overhead; it is a CPU stress test, not a representative GPU scene. Grouped and
+shuffled versions perform the same work. The actual integer glyph count is
+`draws * glyph_percent / 100`, rounded down.
+
+```sh
+python3 profiling/profile.py prepare
+python3 profiling/stress.py --write-plan out/stress-plan.json
+python3 profiling/stress.py --plan out/stress-plan.json --out out/stress-sweep --repeats 3
+```
+
+The initial plan has 78 scenarios. Each scenario is calibrated with a separate,
+retained master-only pilot. Measured frame counts are then fixed for both
+variants, rounded up to complete 16-frame motion cycles, and bounded to
+16..8192. `--target-seconds` is a calibration target, not a guarantee of run
+length. Calibration timings are not paired performance evidence. Stress motion
+uses 16 bounded quarter-pixel steps; the original workloads retain 128 steps.
+
+`experiment.json` saves every configuration, actual command, calibrated frame
+count, build/source hashes, and schedule. A schedule/geometry fingerprint and
+configuration are checked when reporting pairs, in addition to frame and glyph
+counts. Timings retain separate setup/first-frame fields. Timing experiments
+use plain binaries; allocation accounting remains a separate build. On 32-bit
+systems, keep allocation runs short enough that the requested-byte counter
+fits `usize`; the Pi allocation phase uses 16 measured frames.
+
+Select candidates into another JSON plan, retaining every field and `id` from
+the original. Confirm the largest exploratory deltas in a fresh experiment,
+including grouped/shuffled controls and a candidate from each family. The full
+sweep must remain available; a selected maximum is not a universal bound.
+For an independent schedule check, change `seed` and assign a new `id`.
+
+```sh
+python3 profiling/stress.py --plan out/confirm-plan.json --out out/stress-confirm --repeats 9 --target-seconds 1.5
+python3 profiling/stress.py --plan out/counter-plan.json --out out/stress-perf --frames-from out/stress-confirm --repeats 5 --collector perf --cpu 2 --events cycles,instructions,branches,branch-misses
+python3 profiling/stress.py --plan out/counter-plan.json --out out/stress-stages --frames-from out/stress-confirm --repeats 5 --measure stages
+python3 profiling/profile.py report out/stress-confirm
+python3 -m unittest discover -s profiling -p 'test_*.py'
+```
+
+The [Pi 3 adversarial search report](results/pi3-stress-2026-10-09/README.md) preserves the full sweep, independent confirmation, counter/absolute-timing tables, and raw archive. The archive retains two exact source versions and marks the archive-overlapped attempt as collection validation only.
+
+`--cpu` and `perf` are optional Linux collection features. The workload, plan
+selection, timing, allocation builds, and JSON reporting otherwise use Rust
+and the Python standard library without a shell or platform commands. Whole-
+process counter normalization includes setup and warmup, as in `profile.py`;
+variation-heavy setup may need longer runs before counter comparisons are
+interpreted as steady-state behavior.
+
+### Best-improvement workloads
+
+`best-fill` and `best-stroke` prepare positioned glyph arrays before timing to
+test where removing per-glyph save/restore and transform updates helps most.
+`--batch true|false` selects one glyph-run call per frame or one per glyph;
+`--visible-percent 0..100` places that fraction on canvas, rounded down.
+`--font-size SIZE` and `--rotation RADIANS` are set before measurement.
+Rotation forces outline rendering even at small font sizes; unrotated 18 px
+labels provide an atlas control. Keep rotation slight when interpreting
+off-canvas placements, since sufficiently large rotation can bring the
+overlap layout's off-canvas position back inside the canvas.
+
+`--layout overlap` repeats `I` at one position: deliberate synthetic overdraw
+that keeps its transformed outline cached. `grid` uses distinct positions;
+`labels` repeats pre-shaped `0123456789` runs at distinct sites. All layouts
+prepare exactly `draws` glyphs. The fully off-canvas and overlap cases are
+synthetic limits on CPU overhead; spaced scenes provide practical comparisons.
+
+The [Pi 3 best-improvement report](results/pi3-best-2026-10-09/README.md) retains
+the short scout, selected candidates, fresh confirmations, counters, and raw
+results. Its confirmed paired medians were −17.94% for off-canvas batched
+fills, −6.22% for overlapping batched strokes, and −2.80% for spaced fills.
+All three improved in seven of seven confirmation pairs. These are observed
+results for the saved workloads, not bounds on every scene.
+
+To rerun the saved eleven-scenario scout on any supported platform:
+
+```sh
+python3 profiling/profile.py prepare --out target/profiling/best
+python3 profiling/stress.py --plan profiling/results/pi3-best-2026-10-09/scout-best-plan.json --build target/profiling/best/build.json --out out/best-scout --repeats 3 --target-seconds 0.3
+```
+
 ## M4 / Instruments
 
 Requires full Xcode and permission to profile local processes. Timing and

@@ -1,0 +1,863 @@
+{
+  "method": "Six largest exploratory paired medians plus worst per case and grouped/shuffled controls; no pairs omitted",
+  "ranked": [
+    {
+      "id": "tiny-path-stroke-512-16-50-grouped-rectangle-solid-false-389-stationary",
+      "percent": {
+        "max": 11.0311843450428,
+        "median": 10.727251786277648,
+        "min": -1.0212794843592499,
+        "n": 3,
+        "p25": 4.8529861509591985,
+        "p75": 10.879218065660224
+      }
+    },
+    {
+      "id": "tiny-path-fill-64-16-50-grouped-rectangle-solid-false-389-stationary",
+      "percent": {
+        "max": 8.800011330098467,
+        "median": 8.52722093317244,
+        "min": -8.607041733347852,
+        "n": 3,
+        "p25": -0.039910400087705966,
+        "p75": 8.663616131635454
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-10-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 7.84130822032254,
+        "median": 6.188640410317281,
+        "min": -8.592661972296344,
+        "n": 3,
+        "p25": -1.2020107809895322,
+        "p75": 7.014974315319911
+      }
+    },
+    {
+      "id": "tiny-path-stroke-64-16-50-grouped-rectangle-solid-false-389-stationary",
+      "percent": {
+        "max": 7.4574970237198945,
+        "median": 5.799759043151864,
+        "min": 2.4138288189454293,
+        "n": 3,
+        "p25": 4.106793931048647,
+        "p75": 6.628628033435879
+      }
+    },
+    {
+      "id": "tiny-path-fill-512-16-50-grouped-rectangle-solid-true-389-stationary",
+      "percent": {
+        "max": 6.725930590038565,
+        "median": 4.7762392476783155,
+        "min": -9.235355904141985,
+        "n": 3,
+        "p25": -2.2295583282318345,
+        "p75": 5.7510849188584405
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 7.536545140684514,
+        "median": 4.238803986001405,
+        "min": -4.179669320539858,
+        "n": 3,
+        "p25": 0.029567332730772833,
+        "p75": 5.8876745633429595
+      }
+    },
+    {
+      "id": "tiny-path-stroke-4096-16-50-grouped-rectangle-solid-true-389-stationary",
+      "percent": {
+        "max": 5.28105176534075,
+        "median": 3.175988431525978,
+        "min": -5.721183448669653,
+        "n": 3,
+        "p25": -1.2725975085718373,
+        "p75": 4.228520098433364
+      }
+    },
+    {
+      "id": "tiny-path-stroke-64-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 9.46723206133997,
+        "median": 3.089247209154644,
+        "min": -6.916160507696478,
+        "n": 3,
+        "p25": -1.913456649270917,
+        "p75": 6.278239635247307
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-64-50-shuffled-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": 2.403966415128922,
+        "median": 2.004006262124469,
+        "min": -1.0663596099995232,
+        "n": 3,
+        "p25": 0.468823326062473,
+        "p75": 2.2039863386266956
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1-50-grouped-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": 2.521325227316429,
+        "median": 1.9411267688097533,
+        "min": -3.79833993746842,
+        "n": 3,
+        "p25": -0.9286065843293332,
+        "p75": 2.231225998063091
+      }
+    },
+    {
+      "id": "tiny-path-stroke-4096-16-50-grouped-line-solid-false-389-stationary",
+      "percent": {
+        "max": 7.57664887131364,
+        "median": 1.8140494301267518,
+        "min": -0.8035815968579385,
+        "n": 3,
+        "p25": 0.5052339166344066,
+        "p75": 4.695349150720196
+      }
+    },
+    {
+      "id": "tiny-path-fill-64-16-50-grouped-triangle-solid-false-389-stationary",
+      "percent": {
+        "max": 5.814326079227117,
+        "median": 1.629045122465178,
+        "min": -7.1694792858507554,
+        "n": 3,
+        "p25": -2.7702170816927882,
+        "p75": 3.7216856008461474
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1024-50-shuffled-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": 2.2843461294107748,
+        "median": 1.5277804451874655,
+        "min": -0.880872221823159,
+        "n": 3,
+        "p25": 0.3234541116821532,
+        "p75": 1.9060632872991201
+      }
+    },
+    {
+      "id": "tiny-path-stroke-4096-16-50-grouped-triangle-solid-false-389-stationary",
+      "percent": {
+        "max": 0.769969042205787,
+        "median": 0.6750367573165938,
+        "min": -0.7608637977040367,
+        "n": 3,
+        "p25": -0.04291352019372141,
+        "p75": 0.7225028997611904
+      }
+    },
+    {
+      "id": "tiny-path-stroke-512-16-50-grouped-rectangle-solid-true-389-stationary",
+      "percent": {
+        "max": 7.464319326353408,
+        "median": 0.44736049537172917,
+        "min": -7.160860902302469,
+        "n": 3,
+        "p25": -3.35675020346537,
+        "p75": 3.9558399108625686
+      }
+    },
+    {
+      "id": "tiny-path-stroke-4096-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 7.276599476830792,
+        "median": -0.4096387557365522,
+        "min": -1.7591734148017069,
+        "n": 3,
+        "p25": -1.0844060852691295,
+        "p75": 3.43348036054712
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-10-shuffled-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 8.94692589044659,
+        "median": -0.5007452053815364,
+        "min": -8.179315808903898,
+        "n": 3,
+        "p25": -4.340030507142717,
+        "p75": 4.223090342532526
+      }
+    },
+    {
+      "id": "tiny-path-stroke-64-16-50-grouped-triangle-solid-false-389-stationary",
+      "percent": {
+        "max": 2.566736664611824,
+        "median": -0.5579389097881138,
+        "min": -7.04601429211168,
+        "n": 3,
+        "p25": -3.8019766009498968,
+        "p75": 1.004398877411855
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-10-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 7.214181464631708,
+        "median": -0.6256656015472872,
+        "min": -9.24103076484003,
+        "n": 3,
+        "p25": -4.933348183193658,
+        "p75": 3.2942579315422105
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-90-shuffled-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 1.4066310983160246,
+        "median": -0.6517094945825419,
+        "min": -2.3408514688025073,
+        "n": 3,
+        "p25": -1.4962804816925246,
+        "p75": 0.37746080186674136
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-64-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 1.47363365986255,
+        "median": -0.727970257814925,
+        "min": -0.9622864693140776,
+        "n": 3,
+        "p25": -0.8451283635645013,
+        "p75": 0.37283170102381247
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1024-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 0.11294198088884766,
+        "median": -0.7442872603145245,
+        "min": -1.1141541145970546,
+        "n": 3,
+        "p25": -0.9292206874557896,
+        "p75": -0.31567263971283843
+      }
+    },
+    {
+      "id": "tiny-path-fill-64-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -0.7260250918863842,
+        "median": -0.8396162214084235,
+        "min": -5.967896310767862,
+        "n": 3,
+        "p25": -3.4037562660881426,
+        "p75": -0.7828206566474039
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-16-50-grouped-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": -0.4379606300313865,
+        "median": -0.8652793061726949,
+        "min": -1.2956038006520676,
+        "n": 3,
+        "p25": -1.0804415534123812,
+        "p75": -0.6516199681020407
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-256-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 0.4260604316764782,
+        "median": -0.8719413832790734,
+        "min": -1.5287717116454047,
+        "n": 3,
+        "p25": -1.200356547462239,
+        "p75": -0.2229404758012976
+      }
+    },
+    {
+      "id": "tiny-path-stroke-4096-16-50-grouped-line-solid-true-389-stationary",
+      "percent": {
+        "max": -0.678315339661606,
+        "median": -0.9088459755397293,
+        "min": -3.576432642774996,
+        "n": 3,
+        "p25": -2.2426393091573624,
+        "p75": -0.7935806576006676
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-256-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -0.6691279474314693,
+        "median": -1.0142926295815036,
+        "min": -1.3899422846036846,
+        "n": 3,
+        "p25": -1.202117457092594,
+        "p75": -0.8417102885064864
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1024-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -0.41101280107957994,
+        "median": -1.032666667995119,
+        "min": -1.2256327955959323,
+        "n": 3,
+        "p25": -1.1291497317955257,
+        "p75": -0.7218397345373495
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-256-50-grouped-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": -0.7737697737457916,
+        "median": -1.079591492717602,
+        "min": -1.3771309508927354,
+        "n": 3,
+        "p25": -1.2283612218051687,
+        "p75": -0.9266806332316968
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-10-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -0.4767798538318435,
+        "median": -1.1606240493514108,
+        "min": -1.674495020521738,
+        "n": 3,
+        "p25": -1.4175595349365744,
+        "p75": -0.8187019515916272
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-256-50-shuffled-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": 0.7574771618863663,
+        "median": -1.252597678842271,
+        "min": -2.69117065887281,
+        "n": 3,
+        "p25": -1.9718841688575406,
+        "p75": -0.24756025847795238
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-16-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 0.9047358513735171,
+        "median": -1.2955007733907231,
+        "min": -1.4675275834955426,
+        "n": 3,
+        "p25": -1.3815141784431328,
+        "p75": -0.19538246100860301
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-16-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.3340688827057523,
+        "median": -1.4291259386262745,
+        "min": -4.890142142482312,
+        "n": 3,
+        "p25": -3.1596340405542933,
+        "p75": -1.3815974106660134
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-64-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.3291434186780915,
+        "median": -1.4548097252456316,
+        "min": -3.5566768560585493,
+        "n": 3,
+        "p25": -2.5057432906520907,
+        "p75": -1.3919765719618615
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-4-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.405073622397579,
+        "median": -1.5838085305157068,
+        "min": -3.2509642621446733,
+        "n": 3,
+        "p25": -2.41738639633019,
+        "p75": -1.494441076456643
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-10-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 0.884661189301128,
+        "median": -1.6123749519836306,
+        "min": -6.201864927360578,
+        "n": 3,
+        "p25": -3.9071199396721044,
+        "p75": -0.36385688134125127
+      }
+    },
+    {
+      "id": "tiny-path-stroke-64-16-50-grouped-rectangle-solid-true-389-stationary",
+      "percent": {
+        "max": 5.716249095691661,
+        "median": -1.6293482124273062,
+        "min": -3.8263742657632105,
+        "n": 3,
+        "p25": -2.727861239095258,
+        "p75": 2.0434504416321775
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.657622312719298,
+        "median": -1.6821405291212788,
+        "min": -10.114249407563792,
+        "n": 3,
+        "p25": -5.898194968342535,
+        "p75": -1.6698814209202884
+      }
+    },
+    {
+      "id": "tiny-path-fill-64-16-50-grouped-rectangle-solid-true-389-stationary",
+      "percent": {
+        "max": 2.8544804952111535,
+        "median": -1.711149924677735,
+        "min": -6.401616784186725,
+        "n": 3,
+        "p25": -4.05638335443223,
+        "p75": 0.5716652852667092
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-64-50-grouped-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": 1.968062118792413,
+        "median": -1.7216503649309378,
+        "min": -3.4208653683778123,
+        "n": 3,
+        "p25": -2.571257866654375,
+        "p75": 0.12320587693073759
+      }
+    },
+    {
+      "id": "tiny-path-stroke-512-16-50-grouped-line-solid-false-389-stationary",
+      "percent": {
+        "max": 0.016132480456310105,
+        "median": -1.7940747401734791,
+        "min": -2.216249029695405,
+        "n": 3,
+        "p25": -2.0051618849344424,
+        "p75": -0.8889711298585845
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-10-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 6.111818665299129,
+        "median": -1.8108574568575175,
+        "min": -2.1367731299661075,
+        "n": 3,
+        "p25": -1.9738152934118125,
+        "p75": 2.150480604220806
+      }
+    },
+    {
+      "id": "tiny-path-fill-4096-16-50-grouped-triangle-solid-false-389-stationary",
+      "percent": {
+        "max": -1.0862715345728136,
+        "median": -1.890401235175787,
+        "min": -2.977160935821388,
+        "n": 3,
+        "p25": -2.4337810854985875,
+        "p75": -1.4883363848743003
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-10-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.2816419770366516,
+        "median": -1.893546447590455,
+        "min": -2.251138605295566,
+        "n": 3,
+        "p25": -2.072342526443011,
+        "p75": -1.5875942123135534
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-90-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -1.4850138626271825,
+        "median": -1.925197782976018,
+        "min": -9.26137221243798,
+        "n": 3,
+        "p25": -5.5932849977069985,
+        "p75": -1.7051058228016003
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-90-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 1.3842152766583071,
+        "median": -1.9548186393061773,
+        "min": -6.475787212082606,
+        "n": 3,
+        "p25": -4.215302925694392,
+        "p75": -0.2853016813239351
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-90-shuffled-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 0.5088917561657524,
+        "median": -2.010788262110619,
+        "min": -2.5257815003626116,
+        "n": 3,
+        "p25": -2.268284881236615,
+        "p75": -0.7509482529724332
+      }
+    },
+    {
+      "id": "tiny-path-stroke-64-16-50-grouped-line-solid-true-389-stationary",
+      "percent": {
+        "max": 10.302303305304239,
+        "median": -2.044915186740892,
+        "min": -7.771074730839489,
+        "n": 3,
+        "p25": -4.907994958790191,
+        "p75": 4.128694059281674
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-90-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -0.5520724999684035,
+        "median": -2.0589611900635907,
+        "min": -2.706419302128782,
+        "n": 3,
+        "p25": -2.3826902460961863,
+        "p75": -1.305516845015997
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-4-50-grouped-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": -1.6338141263289252,
+        "median": -2.0758587492127445,
+        "min": -2.830190554452272,
+        "n": 3,
+        "p25": -2.453024651832508,
+        "p75": -1.8548364377708348
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-50-shuffled-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -1.6645439259677985,
+        "median": -2.30014078552101,
+        "min": -2.4874261212544657,
+        "n": 3,
+        "p25": -2.393783453387738,
+        "p75": -1.9823423557444042
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.945220002905368,
+        "median": -2.530351339397441,
+        "min": -4.137907344729563,
+        "n": 3,
+        "p25": -3.334129342063502,
+        "p75": -2.2377856711514044
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.4930133004034674,
+        "median": -2.609465561562163,
+        "min": -9.97759448200448,
+        "n": 3,
+        "p25": -6.293530021783322,
+        "p75": -2.0512394309828155
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-90-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -2.418995795357126,
+        "median": -2.6135517449085155,
+        "min": -3.975726404337543,
+        "n": 3,
+        "p25": -3.294639074623029,
+        "p75": -2.5162737701328206
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-4-50-shuffled-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": -0.7596852319487923,
+        "median": -2.616367185969659,
+        "min": -2.6882526192189116,
+        "n": 3,
+        "p25": -2.6523099025942853,
+        "p75": -1.6880262089592257
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -2.7275663634640734,
+        "median": -2.7449705498203025,
+        "min": -3.778310818303443,
+        "n": 3,
+        "p25": -3.261640684061873,
+        "p75": -2.736268456642188
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-90-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -2.0586713758016906,
+        "median": -2.7930328554962025,
+        "min": -4.042008617641713,
+        "n": 3,
+        "p25": -3.4175207365689575,
+        "p75": -2.4258521156489463
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-4-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -2.6660083283614466,
+        "median": -2.9057554952111597,
+        "min": -5.412656628855228,
+        "n": 3,
+        "p25": -4.159206062033194,
+        "p75": -2.785881911786303
+      }
+    },
+    {
+      "id": "mixed-stroke-1024-16-90-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -0.18393991818762556,
+        "median": -3.0475665655253725,
+        "min": -4.432017040423808,
+        "n": 3,
+        "p25": -3.7397918029745902,
+        "p75": -1.615753241856499
+      }
+    },
+    {
+      "id": "tiny-path-fill-4096-16-50-grouped-rectangle-solid-false-389-stationary",
+      "percent": {
+        "max": -0.6321158168239749,
+        "median": -3.1384067364315094,
+        "min": -7.455725595273977,
+        "n": 3,
+        "p25": -5.297066165852743,
+        "p75": -1.8852612766277421
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-16-50-shuffled-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": -2.1517622377772216,
+        "median": -3.1803636021314863,
+        "min": -4.055674370927265,
+        "n": 3,
+        "p25": -3.6180189865293757,
+        "p75": -2.6660629199543537
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1024-50-grouped-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": -3.1869200820013543,
+        "median": -3.2896410622652583,
+        "min": -3.621936842298046,
+        "n": 3,
+        "p25": -3.455788952281652,
+        "p75": -3.2382805721333066
+      }
+    },
+    {
+      "id": "tiny-path-stroke-512-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 2.3112705493340435,
+        "median": -3.2916138038087017,
+        "min": -4.796077725679737,
+        "n": 3,
+        "p25": -4.043845764744219,
+        "p75": -0.4901716272373293
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": 0.2489684828371974,
+        "median": -3.335340534686748,
+        "min": -8.351911995006622,
+        "n": 3,
+        "p25": -5.8436262648466855,
+        "p75": -1.5431860259247754
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1-50-shuffled-triangle-gradient-true-389-moving",
+      "percent": {
+        "max": 3.2680948536982557,
+        "median": -3.5188614082781067,
+        "min": -6.8614880995215515,
+        "n": 3,
+        "p25": -5.190174753899829,
+        "p75": -0.1253832772899255
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-50-shuffled-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -1.5343085898771869,
+        "median": -3.7795952635638064,
+        "min": -8.936374936993175,
+        "n": 3,
+        "p25": -6.357985100278491,
+        "p75": -2.6569519267204966
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-50-grouped-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -2.678798817379646,
+        "median": -3.8025559523748975,
+        "min": -7.061633462827832,
+        "n": 3,
+        "p25": -5.432094707601364,
+        "p75": -3.240677384877272
+      }
+    },
+    {
+      "id": "mixed-fill-1024-16-10-shuffled-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -2.4640002331121846,
+        "median": -4.155087577987593,
+        "min": -4.589459880060276,
+        "n": 3,
+        "p25": -4.372273729023934,
+        "p75": -3.309543905549889
+      }
+    },
+    {
+      "id": "tiny-path-stroke-4096-16-50-grouped-rectangle-solid-false-389-stationary",
+      "percent": {
+        "max": 1.2822694146030988,
+        "median": -4.776831324190645,
+        "min": -4.938672554307255,
+        "n": 3,
+        "p25": -4.857751939248949,
+        "p75": -1.7472809547937729
+      }
+    },
+    {
+      "id": "tiny-path-fill-4096-16-50-grouped-rectangle-solid-true-389-stationary",
+      "percent": {
+        "max": -1.2142863672023552,
+        "median": -6.453909276391423,
+        "min": -8.24304058153732,
+        "n": 3,
+        "p25": -7.348474928964372,
+        "p75": -3.834097821796889
+      }
+    },
+    {
+      "id": "tiny-path-fill-512-16-50-grouped-rectangle-solid-false-389-stationary",
+      "percent": {
+        "max": -3.0637928370009226,
+        "median": -6.578291714878571,
+        "min": -9.021017454093982,
+        "n": 3,
+        "p25": -7.799654584486277,
+        "p75": -4.821042275939747
+      }
+    },
+    {
+      "id": "tiny-path-stroke-64-16-50-grouped-line-solid-false-389-stationary",
+      "percent": {
+        "max": 6.542987356623486,
+        "median": -6.861194401484971,
+        "min": -8.067132831128143,
+        "n": 3,
+        "p25": -7.464163616306557,
+        "p75": -0.15910352243074222
+      }
+    },
+    {
+      "id": "tiny-path-stroke-512-16-50-grouped-line-solid-true-389-stationary",
+      "percent": {
+        "max": 9.996661198226642,
+        "median": -6.909593044756191,
+        "min": -9.052712651920258,
+        "n": 3,
+        "p25": -7.981152848338224,
+        "p75": 1.5435340767352255
+      }
+    },
+    {
+      "id": "tiny-path-fill-512-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": 1.5225726817042373,
+        "median": -7.083960737042827,
+        "min": -9.99677937667689,
+        "n": 3,
+        "p25": -8.540370056859858,
+        "p75": -2.780694027669295
+      }
+    },
+    {
+      "id": "tiny-path-stroke-512-16-50-grouped-triangle-solid-false-389-stationary",
+      "percent": {
+        "max": -0.5336719908002663,
+        "median": -7.739539095747395,
+        "min": -8.099809826445448,
+        "n": 3,
+        "p25": -7.919674461096421,
+        "p75": -4.136605543273831
+      }
+    },
+    {
+      "id": "tiny-path-fill-4096-16-50-grouped-triangle-solid-true-389-stationary",
+      "percent": {
+        "max": -5.717413072130306,
+        "median": -7.849435483736967,
+        "min": -8.630643489740708,
+        "n": 3,
+        "p25": -8.240039486738837,
+        "p75": -6.783424277933636
+      }
+    },
+    {
+      "id": "cache-glyph-fill-2048-1-50-shuffled-triangle-gradient-true-389-stationary",
+      "percent": {
+        "max": -1.7760574450392919,
+        "median": -7.921829150935444,
+        "min": -9.373400880604432,
+        "n": 3,
+        "p25": -8.647615015769938,
+        "p75": -4.848943297987368
+      }
+    },
+    {
+      "id": "tiny-path-fill-512-16-50-grouped-triangle-solid-false-389-stationary",
+      "percent": {
+        "max": 1.1491685650782957,
+        "median": -9.84721277105579,
+        "min": -11.83463453177589,
+        "n": 3,
+        "p25": -10.84092365141584,
+        "p75": -4.349022102988748
+      }
+    }
+  ]
+}

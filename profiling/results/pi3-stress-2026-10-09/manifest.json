@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "archive": {
+    "file": "raw-results.tar.gz",
+    "sha256": "cf44e62e8bab34b5704c23e5c6562c37eeda9ab17ab42eef874ac05bd80e163f",
+    "bytes": 949268
+  },
+  "datasets": {
+    "sweep": {
+      "children": 468,
+      "configs": 78,
+      "status": "performance"
+    },
+    "confirm": {
+      "children": 180,
+      "configs": 10,
+      "status": "performance"
+    },
+    "perf-core": {
+      "children": 50,
+      "configs": 5,
+      "status": "performance"
+    },
+    "perf-cache": {
+      "children": 50,
+      "configs": 5,
+      "status": "performance"
+    },
+    "stages": {
+      "children": 50,
+      "configs": 5,
+      "status": "performance"
+    },
+    "allocations": {
+      "children": 30,
+      "configs": 5,
+      "status": "performance"
+    },
+    "long-validation": {
+      "children": 60,
+      "configs": 3,
+      "status": "validation_only"
+    },
+    "long-clean": {
+      "children": 60,
+      "configs": 3,
+      "status": "performance"
+    }
+  },
+  "validation": {
+    "exact_work_pairs": 474,
+    "total_measured_children": 948,
+    "performance_children": 888,
+    "validation_only_children": 60,
+    "python_unit_tests_passed": 11,
+    "all_perf_running_percent": 100,
+    "measurement_frequency_khz": 1200000
+  }
+}
