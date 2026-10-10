@@ -1,0 +1,19 @@
+# The cut-off scenes built against the femtovg checkout in femtovg/cutoff-master, which run.sh
+# makes. The `swash` feature is off. The scenes draw no text.
+[package]
+name = "repro-cutoff-master"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "cutoff-master"
+path = "../../src/cutoff.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/cutoff-master", features = ["wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }

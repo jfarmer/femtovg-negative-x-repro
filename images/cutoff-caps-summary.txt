@@ -1,0 +1,1 @@
+cutoff-caps-moved.png and cutoff-caps-shadow.png: 184 of 150800 pixels differ, by at most 214/255 in one channel

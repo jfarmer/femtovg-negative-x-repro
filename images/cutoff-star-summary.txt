@@ -1,0 +1,1 @@
+cutoff-star-moved.png and cutoff-star-shadow.png: 937 of 102400 pixels differ, by at most 214/255 in one channel

@@ -1,0 +1,1 @@
+cutoff-joins-moved.png and cutoff-joins-shadow.png: 146 of 150800 pixels differ, by at most 214/255 in one channel

@@ -1,11 +1,11 @@
-# femtovg: comparison images for four text bugs
+# femtovg: comparison images for five bugs
 
 The [portable profiling harness](profiling/README.md) compares CPU work for the
 direct-text gradient fix (#389), with draw/flush timing, allocation accounting,
 macOS Instruments capture, and a Linux `perf` collector.
 
 The programs that made the comparison images for three pull requests to
-[femtovg](https://github.com/femtovg/femtovg), and for a fourth bug that has no pull request
+[femtovg](https://github.com/femtovg/femtovg), and for two more bugs that have no pull request
 yet. In each of the first five images below, the left half is a scene built against upstream
 master and the right half is the same scene built against the commit of its pull request. Both
 halves are drawn at device pixel ratio 1 and nothing is rescaled.
@@ -64,6 +64,27 @@ letter spacing, the colours and the shadow were chosen by hand (see below).
 Two 100 px lines, Roboto Flex, under a shadow that is 14 px left of the text and 8 px below it:
 
 ![Two lines of text and their shadow, drawn with fill_text and with fill_glyph_run](images/shadow-stacked.png)
+
+The fifth bug is the shadow cut-off bug. The shadow of a stroke is cut off where a miter join
+or a square cap reaches more than half the line width past the bounding box of the path's
+points. Every render is upstream master at
+[`d70ffeb`](https://github.com/femtovg/femtovg/commit/d70ffeb79658606fe220801115ccefff33897e86).
+One render of each scene sets no canvas shadow and draws the stroke twice, the first time in
+black where the shadow belongs. The other draws the stroke once under a canvas shadow that has
+no blur. The two should be the same. The shapes, the line widths and the shadow were chosen by
+hand (see below).
+
+The outline of a square with miter joins, upright and turned by 45 degrees:
+
+![Two square outlines and their shadows, drawn twice and under a canvas shadow](images/cutoff-joins-stacked.png)
+
+A line with square caps, level and turned by 45 degrees:
+
+![Two wide lines and their shadows, drawn twice and under a canvas shadow](images/cutoff-caps-stacked.png)
+
+The outline of a five-pointed star with miter joins:
+
+![A star outline and its shadow, drawn twice and under a canvas shadow](images/cutoff-star-side-by-side.png)
 
 `images/` also has each whole render, and a 4x enlargement of part of the About panel, of the
 menu card and of the shadow scene.
@@ -300,6 +321,65 @@ Nothing was searched for. These were chosen by hand:
 [`images/shadow-summary.txt`](images/shadow-summary.txt) has the number of pixels in which
 `fill_text` and `fill_glyph_run` differ, without the shadow and with it.
 
+## The shadow cut-off bug
+
+This bug is not specific to text, and the scenes draw none.
+
+femtovg makes a shadow by drawing the shape a second time into an offscreen image, and it sets
+the size of that image before it draws. For a stroke, `stroke_path_internal` in `src/lib.rs`
+takes the bounding box of the path's points and grows it by half the line width on each side.
+A stroke can reach further than that in two places. A miter join reaches half the line width
+divided by the sine of half the angle between its two edges, measured from the corner. A corner
+of a square cap is 1.41 times half the line width from the end of the line. The part of the
+stroke that is outside the image has no shadow.
+
+At a right angle a miter reaches 1.41 times half the line width from the corner, the same as
+the corner of a square cap. For a corner on the edge of the bounding box, whether that is
+outside the image depends on its direction. With one edge along x and the other along y, it is
+half the line width along x and half along y, so it is inside and the shadow is whole. Turned
+by 45 degrees, it is 1.41 times half the line width along one of the two, so the tip is
+outside. A miter sharper than a right angle reaches further still.
+
+The first two scenes show this with one shape drawn twice: upright on the left, where the
+shadow is whole, and turned by 45 degrees on the right, where its corners are cut off. The Web
+Platform Tests for Canvas shadows have the upright shapes only:
+[`2d.shadow.stroke.join.2`](https://github.com/web-platform-tests/wpt/blob/master/html/canvas/element/shadows/2d.shadow.stroke.join.2.html)
+draws a right-angle join with one edge along x and the other 1 degree from y, and
+[`2d.shadow.stroke.cap.2`](https://github.com/web-platform-tests/wpt/blob/master/html/canvas/element/shadows/2d.shadow.stroke.cap.2.html)
+draws a square cap on a level line.
+
+Each scene is drawn two ways:
+
+```rust
+// "stroke drawn twice": no canvas shadow.
+canvas.translate(22.0, 22.0);
+canvas.stroke_path(&path, &black);
+canvas.reset_transform();
+canvas.stroke_path(&path, &white);
+
+// "canvas shadow"
+canvas.set_shadow_color(Color::black());
+canvas.set_shadow_offset(22.0, 22.0);
+canvas.set_shadow_blur(0.0);
+canvas.stroke_path(&path, &white);
+```
+
+### What was chosen to make the effect easy to see
+
+Nothing was searched for. These were chosen by hand:
+
+- A shadow with no blur. It is then the shape of the stroke, moved by the offset, and the
+  stroke drawn a second time shows what it should be.
+- An offset of 22 px to the right and 22 px down, so that the corners on the right of a shape
+  and below it are not hidden behind the stroke.
+- Lines of 24 px to 60 px. The part that is cut off grows with the line width.
+- A star, because its points are 36 degrees. Its miters reach 3.2 times half the line width,
+  so more is cut off than at a right angle.
+
+[`src/cutoff.rs`](src/cutoff.rs) draws the scenes. `images/cutoff-joins-summary.txt`,
+`images/cutoff-caps-summary.txt` and `images/cutoff-star-summary.txt` have the number of pixels
+in which the two renders of a scene differ.
+
 ## Running it
 
 ```sh
@@ -307,10 +387,10 @@ Nothing was searched for. These were chosen by hand:
 ```
 
 This needs git, cargo, a GPU that wgpu can use, and network access. The script checks out two
-femtovg revisions for each pull request and one for the shadow scene, builds the scenes against
-them, draws and composes the images into `out/`, and reports how many pixels differ from the
-files in `images/`. The committed images were made on macOS 26 with wgpu on Metal. Another GPU
-or driver may give a few different pixels.
+femtovg revisions for each pull request and one each for the shadow scene and the cut-off
+scenes, builds the scenes against them, draws and composes the images into `out/`, and reports
+how many pixels differ from the files in `images/`. The committed images were made on macOS 26
+with wgpu on Metal. Another GPU or driver may give a few different pixels.
 
 | variable              | default                                    | meaning                                                             |
 | --------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
@@ -328,11 +408,14 @@ or driver may give a few different pixels.
 | `GRADIENT_FIXED_REV`  | `38d649c699b339f040a2e8f8a13ed28e1644baf7` | the commit of the third pull request                                |
 | `SHADOW_FEMTOVG_URL`  | `https://github.com/femtovg/femtovg`       | where the revision with the glyph-run shadow bug is                 |
 | `SHADOW_MASTER_REV`   | `d70ffeb79658606fe220801115ccefff33897e86` | upstream master when the shadow scene was written                   |
+| `CUTOFF_FEMTOVG_URL`  | `https://github.com/femtovg/femtovg`       | where the revision with the shadow cut-off bug is                   |
+| `CUTOFF_MASTER_REV`   | `d70ffeb79658606fe220801115ccefff33897e86` | upstream master when the cut-off scenes were written                |
 
 The first four are for the About panel and the menu card, the next four for the specimen, the
-next four for the two gradient scenes and the last two for the shadow scene. A URL may be the
-path of a local clone. A revision is a full commit hash, or the name of a branch or tag. If a
-pull request has changed since this was written, run `FIXED_REV=glyph-mask-phase-keys ./run.sh`,
+next four for the two gradient scenes, the next two for the shadow scene and the last two for
+the cut-off scenes. A URL may be the path of a local clone. A revision is a full commit hash,
+or the name of a branch or tag. If a pull request has changed since this was written, run
+`FIXED_REV=glyph-mask-phase-keys ./run.sh`,
 `SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh` or
 `GRADIENT_FIXED_REV=gradient-on-direct-text ./run.sh`.
 

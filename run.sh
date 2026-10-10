@@ -1,6 +1,6 @@
 #!/bin/sh
-# Draws each of the five scenes on two femtovg revisions and the shadow scene on one, composes the
-# comparison images, and compares the result with the files in images/.
+# Draws five scenes on two femtovg revisions each and four more on one revision each, composes
+# the comparison images, and compares the result with the files in images/.
 #
 # usage: ./run.sh
 #
@@ -24,6 +24,9 @@
 # The shadow scene is for a fourth bug, which has no fix yet, so it has one revision.
 #   SHADOW_FEMTOVG_URL  where that revision is fetched from (https://github.com/femtovg/femtovg)
 #   SHADOW_MASTER_REV   that revision (upstream master when the scene was written)
+# The three cut-off scenes are for a fifth bug, which has no fix yet either.
+#   CUTOFF_FEMTOVG_URL  where that revision is fetched from (https://github.com/femtovg/femtovg)
+#   CUTOFF_MASTER_REV   that revision (upstream master when the scenes were written)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -46,6 +49,8 @@ GRADIENT_FIXED_URL=${GRADIENT_FIXED_URL:-https://github.com/jfarmer/femtovg}
 GRADIENT_FIXED_REV=${GRADIENT_FIXED_REV:-38d649c699b339f040a2e8f8a13ed28e1644baf7}
 SHADOW_FEMTOVG_URL=${SHADOW_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 SHADOW_MASTER_REV=${SHADOW_MASTER_REV:-d70ffeb79658606fe220801115ccefff33897e86}
+CUTOFF_FEMTOVG_URL=${CUTOFF_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+CUTOFF_MASTER_REV=${CUTOFF_MASTER_REV:-d70ffeb79658606fe220801115ccefff33897e86}
 
 die() {
     echo "run.sh: $*" >&2
@@ -63,6 +68,7 @@ SPACING_FIXED_URL=$(absolute "$SPACING_FIXED_URL")
 GRADIENT_FEMTOVG_URL=$(absolute "$GRADIENT_FEMTOVG_URL")
 GRADIENT_FIXED_URL=$(absolute "$GRADIENT_FIXED_URL")
 SHADOW_FEMTOVG_URL=$(absolute "$SHADOW_FEMTOVG_URL")
+CUTOFF_FEMTOVG_URL=$(absolute "$CUTOFF_FEMTOVG_URL")
 
 cd "$(dirname "$0")"
 
@@ -87,6 +93,7 @@ checkout spacing-fixed "$SPACING_FIXED_URL" "$SPACING_FIXED_REV"
 checkout gradient-master "$GRADIENT_FEMTOVG_URL" "$GRADIENT_MASTER_REV"
 checkout gradient-fixed "$GRADIENT_FIXED_URL" "$GRADIENT_FIXED_REV"
 checkout shadow-master "$SHADOW_FEMTOVG_URL" "$SHADOW_MASTER_REV"
+checkout cutoff-master "$CUTOFF_FEMTOVG_URL" "$CUTOFF_MASTER_REV"
 
 # All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
@@ -100,10 +107,10 @@ for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     fi
 done
 
-# One target directory for the seven crates, so that the dependencies are compiled once.
+# One target directory for the eight crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master; do
+for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -182,6 +189,20 @@ shadow_rev=$(git -C femtovg/shadow-master rev-parse --short=7 HEAD)
 # The a, the d and the o of the first line.
 "$bin/compose" zoom "$roboto" out/shadow-text.png "fill_text()" out/shadow-run.png "fill_glyph_run()" 144 24 200 88 out/shadow-zoom.png
 
+# The cut-off scenes are drawn on one revision too. Each is drawn once under a canvas shadow, and
+# once with no canvas shadow and the stroke drawn a second time in black where its shadow belongs.
+cutoff_rev=$(git -C femtovg/cutoff-master rev-parse --short=7 HEAD)
+# cutoff <scene> <side|stack> <w> <h> <output name>: both renders of a scene, whole, in one picture.
+cutoff() {
+    "$bin/cutoff-master" "$1" moved "out/cutoff-$1-moved.png"
+    "$bin/cutoff-master" "$1" shadow "out/cutoff-$1-shadow.png"
+    echo "cutoff-$1-moved.png and cutoff-$1-shadow.png: $("$bin/compare" "out/cutoff-$1-moved.png" "out/cutoff-$1-shadow.png")" >"out/cutoff-$1-summary.txt"
+    "$bin/compose" "$2" "$roboto" "out/cutoff-$1-moved.png" "stroke drawn twice, master ($cutoff_rev)" "out/cutoff-$1-shadow.png" "canvas shadow, master ($cutoff_rev)" 0 0 "$3" "$4" "out/cutoff-$1-$5.png"
+}
+cutoff joins stack 520 290 stacked
+cutoff caps stack 520 290 stacked
+cutoff star side 320 320 side-by-side
+
 echo
 for scene in $scenes; do
     echo "$scene, as femtovg/master draws it:"
@@ -193,6 +214,8 @@ echo "the gradient scenes, as femtovg/gradient-master and femtovg/gradient-fixed
 sed 's/^/  /' out/gradient-text-summary.txt out/gradient-shadow-summary.txt
 echo "the shadow scene, as femtovg/shadow-master draws it:"
 sed 's/^/  /' out/shadow-summary.txt
+echo "the cut-off scenes, as femtovg/cutoff-master draws them:"
+sed 's/^/  /' out/cutoff-joins-summary.txt out/cutoff-caps-summary.txt out/cutoff-star-summary.txt
 
 echo
 echo "out/ compared with images/:"
@@ -223,6 +246,16 @@ for scene in $scenes spacing gradient-text gradient-shadow; do
 done
 for file in shadow-text.png shadow-run.png shadow-stacked.png shadow-zoom.png shadow-summary.txt; do
     check "$file"
+done
+for scene in joins caps star; do
+    # The star is one shape, so its two renders fit side by side.
+    case $scene in
+    star) composed=side-by-side ;;
+    *) composed=stacked ;;
+    esac
+    for file in "cutoff-$scene-moved.png" "cutoff-$scene-shadow.png" "cutoff-$scene-$composed.png" "cutoff-$scene-summary.txt"; do
+        check "$file"
+    done
 done
 [ "$scenes" = "about menu" ] || echo "  the menu images were not made (see above)"
 if [ "$different" -eq 0 ]; then
