@@ -1,0 +1,20 @@
+# The shadow scene built against the femtovg checkout in femtovg/shadow-master, which run.sh
+# makes. The `swash` feature is off. The scene uses `fill_text` and `measure_text`, which are
+# part of `textlayout`, a default feature.
+[package]
+name = "repro-shadow-master"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "shadow-master"
+path = "../../src/shadow.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/shadow-master", features = ["wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }

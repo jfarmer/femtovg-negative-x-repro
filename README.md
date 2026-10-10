@@ -1,14 +1,14 @@
-# femtovg: comparison images for three text bugs
+# femtovg: comparison images for four text bugs
 
 The [portable profiling harness](profiling/README.md) compares CPU work for the
 direct-text gradient fix (#389), with draw/flush timing, allocation accounting,
 macOS Instruments capture, and a Linux `perf` collector.
 
 The programs that made the comparison images for three pull requests to
-[femtovg](https://github.com/femtovg/femtovg). In each of the five images below, the left half
-is a scene built against upstream master and the right half is the same scene built against the
-commit of its pull request. Both halves are drawn at device pixel ratio 1 and nothing is
-rescaled.
+[femtovg](https://github.com/femtovg/femtovg), and for a fourth bug that has no pull request
+yet. In each of the first five images below, the left half is a scene built against upstream
+master and the right half is the same scene built against the commit of its pull request. Both
+halves are drawn at device pixel ratio 1 and nothing is rescaled.
 
 The first pull request, [femtovg/femtovg#384](https://github.com/femtovg/femtovg/pull/384),
 fixes the glyph-mask bug: with the `swash` feature, filled text at a negative x is drawn with
@@ -53,8 +53,20 @@ One 100 px line with a gradient that goes from opaque to transparent, under a bl
 
 ![Gradient text and its shadow on master and with the fix](images/gradient-shadow-side-by-side.png)
 
-`images/` also has each whole render, and a 4x enlargement of part of the About panel and of
-the menu card.
+The fourth bug is the glyph-run shadow bug. With a canvas shadow set, `fill_text` casts one
+shadow for the whole text, and `fill_glyph_run` casts one for every glyph that it draws as an
+outline. The shadow of a glyph is drawn after the glyphs before it, and covers them where it
+reaches them. Both halves of the image are upstream master at
+[`d70ffeb`](https://github.com/femtovg/femtovg/commit/d70ffeb79658606fe220801115ccefff33897e86).
+The upper half is drawn with `fill_text` and the lower half with `fill_glyph_run`. The words, the
+letter spacing, the colours and the shadow were chosen by hand (see below).
+
+Two 100 px lines, Roboto Flex, under a shadow that is 14 px left of the text and 8 px below it:
+
+![Two lines of text and their shadow, drawn with fill_text and with fill_glyph_run](images/shadow-stacked.png)
+
+`images/` also has each whole render, and a 4x enlargement of part of the About panel, of the
+menu card and of the shadow scene.
 
 ## The glyph-mask bug
 
@@ -228,6 +240,66 @@ Nothing was searched for. These were chosen by hand:
 [`images/gradient-shadow-summary.txt`](images/gradient-shadow-summary.txt) have only the number
 of pixels in which the two revisions differ.
 
+## The glyph-run shadow bug
+
+This bug does not need the `swash` feature either, and the scene is built without it.
+
+Three functions in femtovg's `src/lib.rs` cast a canvas shadow: `fill_path_internal`,
+`stroke_path_internal` and `draw_text`. `fill_text` and `stroke_text` call `draw_text`, which
+casts one shadow for the whole text and turns the shadow off while it draws the glyphs.
+`fill_glyph_run` and `stroke_glyph_run` call `draw_glyph_run` directly, and `draw_glyph_run` has
+no shadow code. It draws text larger than 92 px as outlines: `render_direct` in `src/text.rs`
+fills or strokes the outline of each glyph with `fill_path_internal` or `stroke_path_internal`,
+and each of those calls casts a shadow. So a glyph run is drawn as shadow, glyph, shadow, glyph,
+and the shadow of a glyph lies over the glyphs that were drawn before it.
+
+A glyph run that is drawn from the glyph atlas casts no shadow at all. This scene does not show
+that.
+
+The scene draws each of its two lines with one call. The upper half of the image uses
+`fill_text`. The lower half asks `measure_text` for the glyphs of the line and passes them to
+`fill_glyph_run`, so both halves draw every glyph at the same place.
+
+```rust
+canvas.set_shadow_color(Color::black());
+canvas.set_shadow_offset(-14.0, 8.0);
+canvas.set_shadow_blur(6.0);
+
+// The upper half.
+canvas.fill_text(36.0, baseline, line, &paint)?;
+
+// The lower half. `glyphs` has the glyph ids and positions that measure_text returned.
+canvas.fill_glyph_run(font, &[], glyphs, &paint)?;
+```
+
+Without the shadow the two halves are the same in every pixel. With it, `fill_text` leaves every
+letter white, and `fill_glyph_run` darkens the right side of a letter with the shadow of the
+next one. The a, the d and the o of the first line, enlarged 4 times:
+
+![The letters a, d and o enlarged, drawn with fill_text and with fill_glyph_run](images/shadow-zoom.png)
+
+### What was chosen to make the effect easy to see
+
+Nothing was searched for. These were chosen by hand:
+
+- A shadow to the left of the text. A line is drawn from left to right, so a shadow to the left
+  lands on letters that are already drawn. A shadow to the right lands where the next letter is
+  drawn afterwards, and that letter covers it.
+- A font size of 100 px, above the 92 px limit, so that every glyph is drawn as an outline.
+- A letter spacing of -4 px. The closer two letters are, the more of the left one the shadow of
+  the right one covers. This is tighter than the font's own spacing, and some letters almost
+  touch.
+- Words with many round letters (a, d, e, g, o and p). A round side comes closer to the next
+  letter than a straight stem does.
+- White text on blue under a black shadow, so that the shadow shows on the background and on a
+  letter.
+- Two lines, to show more pairs of letters. Each line is drawn with its own call in both halves,
+  and the shadow of the first line does not reach the second.
+
+[`src/shadow.rs`](src/shadow.rs) draws the scene.
+[`images/shadow-summary.txt`](images/shadow-summary.txt) has the number of pixels in which
+`fill_text` and `fill_glyph_run` differ, without the shadow and with it.
+
 ## Running it
 
 ```sh
@@ -235,10 +307,10 @@ of pixels in which the two revisions differ.
 ```
 
 This needs git, cargo, a GPU that wgpu can use, and network access. The script checks out two
-femtovg revisions for each pull request, builds the scenes against them, draws and composes the
-images into `out/`, and reports how many pixels differ from the files in `images/`. The
-committed images were made on macOS 26 with wgpu on Metal. Another GPU or driver may give a few
-different pixels.
+femtovg revisions for each pull request and one for the shadow scene, builds the scenes against
+them, draws and composes the images into `out/`, and reports how many pixels differ from the
+files in `images/`. The committed images were made on macOS 26 with wgpu on Metal. Another GPU
+or driver may give a few different pixels.
 
 | variable              | default                                    | meaning                                                             |
 | --------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
@@ -254,11 +326,13 @@ different pixels.
 | `GRADIENT_MASTER_REV` | `6dd55434177690c845fc5e6f8e9d5a2fe6f1b277` | upstream master when the gradient scenes were written               |
 | `GRADIENT_FIXED_URL`  | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
 | `GRADIENT_FIXED_REV`  | `38d649c699b339f040a2e8f8a13ed28e1644baf7` | the commit of the third pull request                                |
+| `SHADOW_FEMTOVG_URL`  | `https://github.com/femtovg/femtovg`       | where the revision with the glyph-run shadow bug is                 |
+| `SHADOW_MASTER_REV`   | `d70ffeb79658606fe220801115ccefff33897e86` | upstream master when the shadow scene was written                   |
 
-The first four are for the About panel and the menu card, the next four for the specimen and
-the last four for the two gradient scenes. A URL may be the path of a local clone. A revision
-is a full commit hash, or the name of a branch or tag. If a pull request has changed since this
-was written, run `FIXED_REV=glyph-mask-phase-keys ./run.sh`,
+The first four are for the About panel and the menu card, the next four for the specimen, the
+next four for the two gradient scenes and the last two for the shadow scene. A URL may be the
+path of a local clone. A revision is a full commit hash, or the name of a branch or tag. If a
+pull request has changed since this was written, run `FIXED_REV=glyph-mask-phase-keys ./run.sh`,
 `SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh` or
 `GRADIENT_FIXED_REV=gradient-on-direct-text ./run.sh`.
 

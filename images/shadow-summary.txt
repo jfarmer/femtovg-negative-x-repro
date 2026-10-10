@@ -1,0 +1,2 @@
+without the shadow, fill_text and fill_glyph_run: identical
+shadow-text.png and shadow-run.png: 9324 of 142560 pixels differ, by at most 239/255 in one channel

@@ -1,9 +1,11 @@
 //! Puts the same rectangle of two renders of a scene into one picture, with a caption over each.
 //!
 //! usage: compose side <font.ttf> <first.png> <caption> <second.png> <caption> <x> <y> <w> <h> <out.png>
+//!        compose stack <font.ttf> <first.png> <caption> <second.png> <caption> <x> <y> <w> <h> <out.png>
 //!        compose zoom <font.ttf> <first.png> <caption> <second.png> <caption> <x> <y> <w> <h> <out.png>
 //!
 //! `side` puts the first rectangle to the left of the second, pixel for pixel.
+//! `stack` puts the first rectangle above the second, pixel for pixel.
 //! `zoom` draws every pixel of the rectangle as a 4 x 4 square and puts the first above the second.
 //!
 //! The pixels of the renders are copied on the CPU and never resampled or blended. Only the
@@ -38,7 +40,7 @@ fn main() {
         args.as_slice()
     else {
         eprintln!(
-            "usage: {} side|zoom <font.ttf> <first.png> <caption> <second.png> <caption> <x> <y> <w> <h> <out.png>",
+            "usage: {} side|stack|zoom <font.ttf> <first.png> <caption> <second.png> <caption> <x> <y> <w> <h> <out.png>",
             args[0]
         );
         std::process::exit(2);
@@ -46,6 +48,7 @@ fn main() {
     let [x, y, w, h] = [x, y, w, h].map(|value| value.parse::<u32>().expect("x, y, w and h are whole numbers"));
     let (factor, stacked) = match mode.as_str() {
         "side" => (1, false),
+        "stack" => (1, true),
         "zoom" => (ZOOM, true),
         other => panic!("unknown mode {other}"),
     };
@@ -74,7 +77,7 @@ fn main() {
         (second_path, second_caption, second_left, second_top),
     ] {
         let picture = open(path);
-        let text = if stacked {
+        let text = if factor > 1 {
             format!(
                 "{name}    x {x}..{}, y {y}..{}, each pixel drawn {factor} x {factor}",
                 x + w,

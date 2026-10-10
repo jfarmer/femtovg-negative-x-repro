@@ -1,6 +1,6 @@
 #!/bin/sh
-# Draws each of the five scenes on two femtovg revisions, composes the comparison images, and
-# compares the result with the files in images/.
+# Draws each of the five scenes on two femtovg revisions and the shadow scene on one, composes the
+# comparison images, and compares the result with the files in images/.
 #
 # usage: ./run.sh
 #
@@ -21,6 +21,9 @@
 #   GRADIENT_MASTER_REV   that revision (upstream master when the scenes were written)
 #   GRADIENT_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
 #   GRADIENT_FIXED_REV    that revision (the commit of the pull request)
+# The shadow scene is for a fourth bug, which has no fix yet, so it has one revision.
+#   SHADOW_FEMTOVG_URL  where that revision is fetched from (https://github.com/femtovg/femtovg)
+#   SHADOW_MASTER_REV   that revision (upstream master when the scene was written)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -41,6 +44,8 @@ GRADIENT_FEMTOVG_URL=${GRADIENT_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 GRADIENT_MASTER_REV=${GRADIENT_MASTER_REV:-6dd55434177690c845fc5e6f8e9d5a2fe6f1b277}
 GRADIENT_FIXED_URL=${GRADIENT_FIXED_URL:-https://github.com/jfarmer/femtovg}
 GRADIENT_FIXED_REV=${GRADIENT_FIXED_REV:-38d649c699b339f040a2e8f8a13ed28e1644baf7}
+SHADOW_FEMTOVG_URL=${SHADOW_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+SHADOW_MASTER_REV=${SHADOW_MASTER_REV:-d70ffeb79658606fe220801115ccefff33897e86}
 
 die() {
     echo "run.sh: $*" >&2
@@ -57,6 +62,7 @@ SPACING_FEMTOVG_URL=$(absolute "$SPACING_FEMTOVG_URL")
 SPACING_FIXED_URL=$(absolute "$SPACING_FIXED_URL")
 GRADIENT_FEMTOVG_URL=$(absolute "$GRADIENT_FEMTOVG_URL")
 GRADIENT_FIXED_URL=$(absolute "$GRADIENT_FIXED_URL")
+SHADOW_FEMTOVG_URL=$(absolute "$SHADOW_FEMTOVG_URL")
 
 cd "$(dirname "$0")"
 
@@ -80,6 +86,7 @@ checkout spacing-master "$SPACING_FEMTOVG_URL" "$SPACING_MASTER_REV"
 checkout spacing-fixed "$SPACING_FIXED_URL" "$SPACING_FIXED_REV"
 checkout gradient-master "$GRADIENT_FEMTOVG_URL" "$GRADIENT_MASTER_REV"
 checkout gradient-fixed "$GRADIENT_FIXED_URL" "$GRADIENT_FIXED_REV"
+checkout shadow-master "$SHADOW_FEMTOVG_URL" "$SHADOW_MASTER_REV"
 
 # All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
@@ -93,10 +100,10 @@ for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     fi
 done
 
-# One target directory for the six crates, so that the dependencies are compiled once.
+# One target directory for the seven crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed; do
+for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -159,6 +166,22 @@ master_checkout=gradient-master
 compose side gradient-text 0 0 720 250 side-by-side
 compose side gradient-shadow 0 0 720 250 side-by-side
 
+# The shadow scene is drawn on one revision, once with fill_text and once with fill_glyph_run.
+# Without the shadow the two calls draw the same pixels, and the summary has that comparison too.
+for call in text run; do
+    "$bin/shadow-master" "$roboto" "$call" shadow "out/shadow-$call.png"
+    "$bin/shadow-master" "$roboto" "$call" plain "out/shadow-$call-plain.png"
+done
+{
+    echo "without the shadow, fill_text and fill_glyph_run: $("$bin/compare" out/shadow-text-plain.png out/shadow-run-plain.png)"
+    echo "shadow-text.png and shadow-run.png: $("$bin/compare" out/shadow-text.png out/shadow-run.png)"
+} >out/shadow-summary.txt
+shadow_rev=$(git -C femtovg/shadow-master rev-parse --short=7 HEAD)
+# The whole scene, with the fill_text render above the fill_glyph_run render.
+"$bin/compose" stack "$roboto" out/shadow-text.png "fill_text(), master ($shadow_rev)" out/shadow-run.png "fill_glyph_run(), master ($shadow_rev)" 0 0 540 264 out/shadow-stacked.png
+# The a, the d and the o of the first line.
+"$bin/compose" zoom "$roboto" out/shadow-text.png "fill_text()" out/shadow-run.png "fill_glyph_run()" 144 24 200 88 out/shadow-zoom.png
+
 echo
 for scene in $scenes; do
     echo "$scene, as femtovg/master draws it:"
@@ -168,29 +191,38 @@ echo "spacing, as femtovg/spacing-master and femtovg/spacing-fixed draw it:"
 sed 's/^/  /' out/spacing-summary.txt
 echo "the gradient scenes, as femtovg/gradient-master and femtovg/gradient-fixed draw them:"
 sed 's/^/  /' out/gradient-text-summary.txt out/gradient-shadow-summary.txt
+echo "the shadow scene, as femtovg/shadow-master draws it:"
+sed 's/^/  /' out/shadow-summary.txt
 
 echo
 echo "out/ compared with images/:"
 files=0
 different=0
+# check <file>: compares out/<file> with images/<file> and prints the result.
+check() {
+    files=$((files + 1))
+    if [ "${1##*.}" = png ]; then
+        result=$("$bin/compare" "out/$1" "images/$1") || different=$((different + 1))
+    elif cmp -s "out/$1" "images/$1"; then
+        result=identical
+    else
+        result=differs
+        different=$((different + 1))
+    fi
+    printf '  %-32s %s\n' "$1" "$result"
+}
 for scene in $scenes spacing gradient-text gradient-shadow; do
-    # An enlargement is made of the About panel and of the menu card only.
+    # Of these scenes, an enlargement is made of the About panel and of the menu card only.
     case $scene in
     about | menu) zoom=$scene-zoom.png ;;
     *) zoom= ;;
     esac
     for file in "$scene-master.png" "$scene-fixed.png" "$scene-side-by-side.png" $zoom "$scene-summary.txt"; do
-        files=$((files + 1))
-        if [ "${file##*.}" = png ]; then
-            result=$("$bin/compare" "out/$file" "images/$file") || different=$((different + 1))
-        elif cmp -s "out/$file" "images/$file"; then
-            result=identical
-        else
-            result=differs
-            different=$((different + 1))
-        fi
-        printf '  %-32s %s\n' "$file" "$result"
+        check "$file"
     done
+done
+for file in shadow-text.png shadow-run.png shadow-stacked.png shadow-zoom.png shadow-summary.txt; do
+    check "$file"
 done
 [ "$scenes" = "about menu" ] || echo "  the menu images were not made (see above)"
 if [ "$different" -eq 0 ]; then
