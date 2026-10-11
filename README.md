@@ -598,7 +598,7 @@ with wgpu on Metal. Another GPU or driver may give a few different pixels.
 | `SHAPING_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`       | where the revision with the shaping-key bug is                      |
 | `SHAPING_MASTER_REV`  | `d70ffeb79658606fe220801115ccefff33897e86` | upstream master when the shaping scenes were written                |
 | `SHAPING_FIXED_URL`   | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
-| `SHAPING_FIXED_REV`   | `561f75a4ebfe61e8c32ed710511a674a20e54b8e` | the last commit of the fix                                          |
+| `SHAPING_FIXED_REV`   | `8b62f21a9a2b3613d95b7f85cec218a646cec23f` | the last commit of the fix                                          |
 
 The first four are for the About panel and the menu card, the next four for the specimen, the
 next four for the two gradient scenes, the next two for the shadow scene, the next two for the
