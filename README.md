@@ -108,13 +108,9 @@ The seventh bug is the shaping-key bug. The key of femtovg's shaping caches roun
 to a tenth of a pixel and the width that text is wrapped at to a whole pixel, while shaping reads
 both exactly. So text at two font sizes in one tenth of a pixel shares one cache entry, and so
 does text wrapped at two widths in one whole pixel, and the second call gets what the first
-computed. The fix is not a pull request yet: it is stacked on the second pull request's branch
-and will be opened when that has merged. Left: upstream master at
+computed. The fix is not a pull request yet. Left: upstream master at
 [`8d092f2`](https://github.com/femtovg/femtovg/commit/8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d).
-The right half is built at the fix, which sits on a later revision of the second pull request's
-commit than the specimen above was made with; that commit changes nothing here, because every
-line is at letter spacing 0. The sentence, the font sizes, the paragraph and the box widths were
-chosen by hand (see below).
+The sentence, the font sizes, the paragraph and the box widths were chosen by hand (see below).
 
 One sentence at font sizes 10, 10.03, 10.06 and 10.09 px, Roboto Flex. A red tick marks where
 each line should end:
@@ -598,7 +594,7 @@ with wgpu on Metal. Another GPU or driver may give a few different pixels.
 | `SHAPING_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`       | where the revision with the shaping-key bug is                      |
 | `SHAPING_MASTER_REV`  | `8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d` | upstream master when the shaping scenes were written                |
 | `SHAPING_FIXED_URL`   | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
-| `SHAPING_FIXED_REV`   | `6395cb11d01056bcdb508d7e663099c1296d235e` | the last commit of the fix                                          |
+| `SHAPING_FIXED_REV`   | `7e6ac90bda4ec1d46114d5a8e0f8ec2c6f31cf20` | the last commit of the fix                                          |
 
 The first four are for the About panel and the menu card, the next four for the specimen, the
 next four for the two gradient scenes, the next two for the shadow scene, the next two for the
