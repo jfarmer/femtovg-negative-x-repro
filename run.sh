@@ -27,6 +27,11 @@
 # The three cut-off scenes are for a fifth bug, which has no fix yet either.
 #   CUTOFF_FEMTOVG_URL  where that revision is fetched from (https://github.com/femtovg/femtovg)
 #   CUTOFF_MASTER_REV   that revision (upstream master when the scenes were written)
+# The two path-cache scenes are for a sixth bug and have their own pair of revisions.
+#   PATHCACHE_FEMTOVG_URL  where the revision with the bug is fetched from (https://github.com/femtovg/femtovg)
+#   PATHCACHE_MASTER_REV   that revision (upstream master when the scenes were written)
+#   PATHCACHE_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
+#   PATHCACHE_FIXED_REV    that revision (the commit of the pull request)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -51,6 +56,10 @@ SHADOW_FEMTOVG_URL=${SHADOW_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 SHADOW_MASTER_REV=${SHADOW_MASTER_REV:-d70ffeb79658606fe220801115ccefff33897e86}
 CUTOFF_FEMTOVG_URL=${CUTOFF_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 CUTOFF_MASTER_REV=${CUTOFF_MASTER_REV:-d70ffeb79658606fe220801115ccefff33897e86}
+PATHCACHE_FEMTOVG_URL=${PATHCACHE_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+PATHCACHE_MASTER_REV=${PATHCACHE_MASTER_REV:-8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d}
+PATHCACHE_FIXED_URL=${PATHCACHE_FIXED_URL:-https://github.com/jfarmer/femtovg}
+PATHCACHE_FIXED_REV=${PATHCACHE_FIXED_REV:-d3715c0dfb7a047792da83ce8a973c6772558bed}
 
 die() {
     echo "run.sh: $*" >&2
@@ -69,6 +78,8 @@ GRADIENT_FEMTOVG_URL=$(absolute "$GRADIENT_FEMTOVG_URL")
 GRADIENT_FIXED_URL=$(absolute "$GRADIENT_FIXED_URL")
 SHADOW_FEMTOVG_URL=$(absolute "$SHADOW_FEMTOVG_URL")
 CUTOFF_FEMTOVG_URL=$(absolute "$CUTOFF_FEMTOVG_URL")
+PATHCACHE_FEMTOVG_URL=$(absolute "$PATHCACHE_FEMTOVG_URL")
+PATHCACHE_FIXED_URL=$(absolute "$PATHCACHE_FIXED_URL")
 
 cd "$(dirname "$0")"
 
@@ -94,6 +105,8 @@ checkout gradient-master "$GRADIENT_FEMTOVG_URL" "$GRADIENT_MASTER_REV"
 checkout gradient-fixed "$GRADIENT_FIXED_URL" "$GRADIENT_FIXED_REV"
 checkout shadow-master "$SHADOW_FEMTOVG_URL" "$SHADOW_MASTER_REV"
 checkout cutoff-master "$CUTOFF_FEMTOVG_URL" "$CUTOFF_MASTER_REV"
+checkout pathcache-master "$PATHCACHE_FEMTOVG_URL" "$PATHCACHE_MASTER_REV"
+checkout pathcache-fixed "$PATHCACHE_FIXED_URL" "$PATHCACHE_FIXED_REV"
 
 # All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
@@ -107,10 +120,10 @@ for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     fi
 done
 
-# One target directory for the eight crates, so that the dependencies are compiled once.
+# One target directory for the ten crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master; do
+for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master pathcache-master pathcache-fixed; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -203,6 +216,18 @@ cutoff joins stack 520 290 stacked
 cutoff caps stack 520 290 stacked
 cutoff star side 320 320 side-by-side
 
+# The path-cache scenes print nothing, so their summaries have only the pixel comparison.
+for scene in trace bars; do
+    for revision in master fixed; do
+        "$bin/pathcache-$revision" "$scene" "out/pathcache-$scene-$revision.png"
+    done
+    echo "pathcache-$scene-master.png and pathcache-$scene-fixed.png: $("$bin/compare" "out/pathcache-$scene-master.png" "out/pathcache-$scene-fixed.png")" >"out/pathcache-$scene-summary.txt"
+done
+master_checkout=pathcache-master
+# The last frame of each scene, whole.
+compose side pathcache-trace 0 0 520 240 side-by-side
+compose side pathcache-bars 0 0 520 240 side-by-side
+
 echo
 for scene in $scenes; do
     echo "$scene, as femtovg/master draws it:"
@@ -216,6 +241,8 @@ echo "the shadow scene, as femtovg/shadow-master draws it:"
 sed 's/^/  /' out/shadow-summary.txt
 echo "the cut-off scenes, as femtovg/cutoff-master draws them:"
 sed 's/^/  /' out/cutoff-joins-summary.txt out/cutoff-caps-summary.txt out/cutoff-star-summary.txt
+echo "the path-cache scenes, as femtovg/pathcache-master and femtovg/pathcache-fixed draw them:"
+sed 's/^/  /' out/pathcache-trace-summary.txt out/pathcache-bars-summary.txt
 
 echo
 echo "out/ compared with images/:"
@@ -234,7 +261,7 @@ check() {
     fi
     printf '  %-32s %s\n' "$1" "$result"
 }
-for scene in $scenes spacing gradient-text gradient-shadow; do
+for scene in $scenes spacing gradient-text gradient-shadow pathcache-trace pathcache-bars; do
     # Of these scenes, an enlargement is made of the About panel and of the menu card only.
     case $scene in
     about | menu) zoom=$scene-zoom.png ;;

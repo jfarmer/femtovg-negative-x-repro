@@ -1,0 +1,1 @@
+pathcache-bars-master.png and pathcache-bars-fixed.png: 42900 of 124800 pixels differ, by at most 203/255 in one channel

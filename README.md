@@ -1,14 +1,14 @@
-# femtovg: comparison images for five bugs
+# femtovg: comparison images for six bugs
 
 The [portable profiling harness](profiling/README.md) compares CPU work for the
 direct-text gradient fix (#389), with draw/flush timing, allocation accounting,
 macOS Instruments capture, and a Linux `perf` collector.
 
-The programs that made the comparison images for three pull requests to
+The programs that made the comparison images for four pull requests to
 [femtovg](https://github.com/femtovg/femtovg), and for two more bugs that have no pull request
-yet. In each of the first five images below, the left half is a scene built against upstream
-master and the right half is the same scene built against the commit of its pull request. Both
-halves are drawn at device pixel ratio 1 and nothing is rescaled.
+yet. In each image for a pull request, the left half is a scene built against upstream master
+and the right half is the same scene built against the commit of its pull request. Both halves
+are drawn at device pixel ratio 1 and nothing is rescaled.
 
 The first pull request, [femtovg/femtovg#384](https://github.com/femtovg/femtovg/pull/384),
 fixes the glyph-mask bug: with the `swash` feature, filled text at a negative x is drawn with
@@ -85,6 +85,23 @@ A line with square caps, level and turned by 45 degrees:
 The outline of a five-pointed star with miter joins:
 
 ![A star outline and its shadow, drawn twice and under a canvas shadow](images/cutoff-star-side-by-side.png)
+
+The sixth bug is the path-cache bug, and the fourth pull request fixes it. A `Path` that is
+drawn or hit-tested, then extended with more verbs, then drawn again under the same transform
+is drawn as it was at its first draw. Left: upstream master at
+[`8d092f2`](https://github.com/femtovg/femtovg/commit/8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d).
+Both scenes keep one path, append to it every frame, draw it every frame and keep the last
+frame. The curve, the bars and the markers were chosen by hand (see below).
+
+A trace that gets one sample per frame and is stroked every frame. The dot and the line down
+the canvas mark the newest sample:
+
+![A trace of 49 samples on master and with the fix](images/pathcache-trace-side-by-side.png)
+
+A bar chart that gets one bar per frame and is filled every frame. The dot marks the newest
+bar:
+
+![A bar chart of twelve bars on master and with the fix](images/pathcache-bars-side-by-side.png)
 
 `images/` also has each whole render, and a 4x enlargement of part of the About panel, of the
 menu card and of the shadow scene.
@@ -380,6 +397,57 @@ Nothing was searched for. These were chosen by hand:
 `images/cutoff-caps-summary.txt` and `images/cutoff-star-summary.txt` have the number of pixels
 in which the two renders of a scene differ.
 
+## The path-cache bug
+
+This bug is not specific to text either, and the scenes draw none.
+
+A `Path` keeps one flattened, transformed copy of itself, so that a path drawn every frame
+under the same transform is not flattened again each frame. `Path::cache` in femtovg's
+`src/path.rs` builds the copy the first time the path is drawn or hit-tested, keyed on the
+canvas transform, and rebuilds it only when the transform changes. `Path::append`, which every
+builder method (`move_to`, `line_to`, `rect`, `circle` and the rest) calls to add its verbs,
+does not drop the copy. So the next draw under the same transform draws the copy, which has
+the verbs the path had when it was first drawn. `fill_path`, `stroke_path`, `contains_point`,
+`path_bbox` and `clip_path` all read it. The fix drops the copy in `Path::append`.
+
+Both scenes keep one `Path` for the whole run, append to it every frame and draw it every
+frame, with no canvas transform. The trace does this:
+
+```rust
+let mut path = Path::new();
+path.move_to(samples[0].0, samples[0].1);
+for &sample in &samples[1..] {
+    path.line_to(sample.0, sample.1);
+    canvas.clear_rect(0, 0, WIDTH, HEIGHT, BACKGROUND);
+    canvas.stroke_path(&path, &paint);
+    // The marker, from a new Path; then the frame is flushed.
+}
+```
+
+On master the first frame flattens the path with its first segment, and every later frame
+strokes that. The trace stops at its first segment while the marker is at the 49th sample,
+and the bar chart has its first bar while the marker is under the twelfth. With the fix the
+trace has all 48 segments and the chart all twelve bars.
+
+### What was chosen to make the effect easy to see
+
+Nothing was searched for. These were chosen by hand:
+
+- One path that grows by one verb per frame and is drawn every frame, the way an app that
+  plots live data or records a pen stroke draws. Every frame is flushed.
+- The first draw after the first segment and after the first bar, so that master draws
+  something and the picture shows where the drawing stopped, not an empty canvas.
+- A marker at the newest sample or bar, drawn from a new `Path` every frame. A new path has no
+  copy to draw from, so the marker is right on both revisions and shows how far the drawing
+  should have come.
+- A trace with two harmonics and twelve bars of different heights, so that the whole drawing
+  is plainly more than its first segment or bar.
+- A stroke in one scene and a fill in the other, because both read the copy.
+
+[`src/pathcache.rs`](src/pathcache.rs) draws both scenes. It prints nothing, so
+`images/pathcache-trace-summary.txt` and `images/pathcache-bars-summary.txt` have only the
+number of pixels in which the two revisions differ.
+
 ## Running it
 
 ```sh
@@ -410,14 +478,19 @@ with wgpu on Metal. Another GPU or driver may give a few different pixels.
 | `SHADOW_MASTER_REV`   | `d70ffeb79658606fe220801115ccefff33897e86` | upstream master when the shadow scene was written                   |
 | `CUTOFF_FEMTOVG_URL`  | `https://github.com/femtovg/femtovg`       | where the revision with the shadow cut-off bug is                   |
 | `CUTOFF_MASTER_REV`   | `d70ffeb79658606fe220801115ccefff33897e86` | upstream master when the cut-off scenes were written                |
+| `PATHCACHE_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`     | where the revision with the path-cache bug is                       |
+| `PATHCACHE_MASTER_REV` | `8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d` | upstream master when the path-cache scenes were written            |
+| `PATHCACHE_FIXED_URL` | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
+| `PATHCACHE_FIXED_REV` | `d3715c0dfb7a047792da83ce8a973c6772558bed` | the commit of the fourth pull request                               |
 
 The first four are for the About panel and the menu card, the next four for the specimen, the
-next four for the two gradient scenes, the next two for the shadow scene and the last two for
-the cut-off scenes. A URL may be the path of a local clone. A revision is a full commit hash,
-or the name of a branch or tag. If a pull request has changed since this was written, run
+next four for the two gradient scenes, the next two for the shadow scene, the next two for the
+cut-off scenes and the last four for the two path-cache scenes. A URL may be the path of a
+local clone. A revision is a full commit hash, or the name of a branch or tag. If a pull request has changed since this was written, run
 `FIXED_REV=glyph-mask-phase-keys ./run.sh`,
-`SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh` or
-`GRADIENT_FIXED_REV=gradient-on-direct-text ./run.sh`.
+`SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh`,
+`GRADIENT_FIXED_REV=gradient-on-direct-text ./run.sh` or
+`PATHCACHE_FIXED_REV=path-cache-invalidation ./run.sh`.
 
 No font file is in this repository. Roboto Flex is read from femtovg's `examples/assets`.
 New York is an Apple system font, read from `/System/Library/Fonts` or from `NEW_YORK_DIR`.

@@ -1,0 +1,19 @@
+# The path-cache scenes built against the femtovg checkout in femtovg/pathcache-fixed, which
+# run.sh makes. The `swash` feature is off. The scenes draw no text.
+[package]
+name = "repro-pathcache-fixed"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "pathcache-fixed"
+path = "../../src/pathcache.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/pathcache-fixed", features = ["wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }

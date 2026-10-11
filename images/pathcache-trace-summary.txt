@@ -1,0 +1,1 @@
+pathcache-trace-master.png and pathcache-trace-fixed.png: 3487 of 124800 pixels differ, by at most 203/255 in one channel
