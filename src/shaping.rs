@@ -242,7 +242,7 @@ impl Scene {
             .fill_text(
                 LEFT,
                 HEADING_BASELINE,
-                &format!("Roboto Flex {PARAGRAPH_SIZE} px, the second box 0.2 px narrower and painted {OTHER_STRINGS} strings after its layout"),
+                &format!("Box 2 is 0.2 px narrower, painted {OTHER_STRINGS} strings later"),
                 &heading,
             )
             .expect("fill_text");

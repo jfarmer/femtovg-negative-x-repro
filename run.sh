@@ -255,7 +255,7 @@ master_checkout=shaping-master
 compose side size 0 0 681 200 side-by-side
 compose side wrap 0 0 466 316 side-by-side
 # The right end of the 10.09 px line of the size scene and of its cell.
-compose zoom size 560 132 120 34 zoom
+compose zoom size 548 132 112 34 zoom
 
 echo
 for scene in $scenes; do
