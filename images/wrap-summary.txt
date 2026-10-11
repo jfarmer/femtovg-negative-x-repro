@@ -1,0 +1,53 @@
+shaping-master wrap:
+the first 8 words, "Text that is broken into lines is measured", are 233.346 px wide
+box 1 at max_width 233.246 px:
+   175.932 px  "Text that is broken into lines is "
+   212.158 px  "measured word by word, and a word "
+   236.133 px  "goes to the next line when the line would "
+   214.348 px  "be wider than the box. A box that is a "
+   235.257 px  "fraction of a pixel wider than the first line "
+   234.438 px  "should keep the same words on it, and a "
+   216.258 px  "box that is a fraction narrower should "
+   162.284 px  "move the last of them down."
+  a new TextContext breaks it the same way
+box 2 at max_width 233.446 px:
+   175.932 px  "Text that is broken into lines is "
+   212.158 px  "measured word by word, and a word "
+   236.133 px  "goes to the next line when the line would "
+   214.348 px  "be wider than the box. A box that is a "
+   235.257 px  "fraction of a pixel wider than the first line "
+   234.438 px  "should keep the same words on it, and a "
+   216.258 px  "box that is a fraction narrower should "
+   162.284 px  "move the last of them down."
+  a new TextContext breaks it differently:
+    "Text that is broken into lines is measured "
+    "word by word, and a word goes to the "
+    "next line when the line would be wider "
+    "than the box. A box that is a fraction of a "
+    "pixel wider than the first line should "
+    "keep the same words on it, and a box "
+    "that is a fraction narrower should move "
+    "the last of them down."
+shaping-fixed wrap:
+the first 8 words, "Text that is broken into lines is measured", are 233.346 px wide
+box 1 at max_width 233.246 px:
+   175.932 px  "Text that is broken into lines is "
+   212.158 px  "measured word by word, and a word "
+   236.133 px  "goes to the next line when the line would "
+   214.348 px  "be wider than the box. A box that is a "
+   235.257 px  "fraction of a pixel wider than the first line "
+   234.438 px  "should keep the same words on it, and a "
+   216.258 px  "box that is a fraction narrower should "
+   162.284 px  "move the last of them down."
+  a new TextContext breaks it the same way
+box 2 at max_width 233.446 px:
+   236.520 px  "Text that is broken into lines is measured "
+   218.842 px  "word by word, and a word goes to the "
+   221.305 px  "next line when the line would be wider "
+   233.327 px  "than the box. A box that is a fraction of a "
+   205.829 px  "pixel wider than the first line should "
+   216.493 px  "keep the same words on it, and a box "
+   226.662 px  "that is a fraction narrower should move "
+   127.829 px  "the last of them down."
+  a new TextContext breaks it the same way
+wrap-master.png and wrap-fixed.png: 9166 of 187200 pixels differ, by at most 235/255 in one channel

@@ -1,0 +1,13 @@
+shaping-master size:
+font size  glyphs  TextMetrics::width()  new TextContext  ends at x  tick at x  ends left of its tick by
+ 10.00 px     163               595.449          595.449    635.449    635.449                  0.000 px
+ 10.03 px     163               595.449          597.236    635.449    637.236                  1.786 px
+ 10.06 px     163               595.449          599.022    635.449    639.022                  3.573 px
+ 10.09 px     163               595.449          600.808    635.449    640.808                  5.359 px
+shaping-fixed size:
+font size  glyphs  TextMetrics::width()  new TextContext  ends at x  tick at x  ends left of its tick by
+ 10.00 px     163               595.449          595.449    635.449    635.449                  0.000 px
+ 10.03 px     163               597.236          597.236    637.235    637.236                  0.000 px
+ 10.06 px     163               599.022          599.022    639.022    639.022                  0.000 px
+ 10.09 px     163               600.808          600.808    640.808    640.808                  0.000 px
+size-master.png and size-fixed.png: 7969 of 192960 pixels differ, by at most 235/255 in one channel

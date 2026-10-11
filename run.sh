@@ -1,5 +1,5 @@
 #!/bin/sh
-# Draws five scenes on two femtovg revisions each and four more on one revision each, composes
+# Draws nine scenes on two femtovg revisions each and four more on one revision each, composes
 # the comparison images, and compares the result with the files in images/.
 #
 # usage: ./run.sh
@@ -32,6 +32,11 @@
 #   PATHCACHE_MASTER_REV   that revision (upstream master when the scenes were written)
 #   PATHCACHE_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
 #   PATHCACHE_FIXED_REV    that revision (the commit of the pull request)
+# The two shaping scenes are for a seventh bug and have their own pair of revisions.
+#   SHAPING_FEMTOVG_URL  where the revision with the bug is fetched from (https://github.com/femtovg/femtovg)
+#   SHAPING_MASTER_REV   that revision (upstream master when the scenes were written)
+#   SHAPING_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
+#   SHAPING_FIXED_REV    that revision (the commit of the fix)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -60,6 +65,10 @@ PATHCACHE_FEMTOVG_URL=${PATHCACHE_FEMTOVG_URL:-https://github.com/femtovg/femtov
 PATHCACHE_MASTER_REV=${PATHCACHE_MASTER_REV:-8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d}
 PATHCACHE_FIXED_URL=${PATHCACHE_FIXED_URL:-https://github.com/jfarmer/femtovg}
 PATHCACHE_FIXED_REV=${PATHCACHE_FIXED_REV:-d3715c0dfb7a047792da83ce8a973c6772558bed}
+SHAPING_FEMTOVG_URL=${SHAPING_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+SHAPING_MASTER_REV=${SHAPING_MASTER_REV:-d70ffeb79658606fe220801115ccefff33897e86}
+SHAPING_FIXED_URL=${SHAPING_FIXED_URL:-https://github.com/jfarmer/femtovg}
+SHAPING_FIXED_REV=${SHAPING_FIXED_REV:-561f75a4ebfe61e8c32ed710511a674a20e54b8e}
 
 die() {
     echo "run.sh: $*" >&2
@@ -80,6 +89,8 @@ SHADOW_FEMTOVG_URL=$(absolute "$SHADOW_FEMTOVG_URL")
 CUTOFF_FEMTOVG_URL=$(absolute "$CUTOFF_FEMTOVG_URL")
 PATHCACHE_FEMTOVG_URL=$(absolute "$PATHCACHE_FEMTOVG_URL")
 PATHCACHE_FIXED_URL=$(absolute "$PATHCACHE_FIXED_URL")
+SHAPING_FEMTOVG_URL=$(absolute "$SHAPING_FEMTOVG_URL")
+SHAPING_FIXED_URL=$(absolute "$SHAPING_FIXED_URL")
 
 cd "$(dirname "$0")"
 
@@ -107,6 +118,8 @@ checkout shadow-master "$SHADOW_FEMTOVG_URL" "$SHADOW_MASTER_REV"
 checkout cutoff-master "$CUTOFF_FEMTOVG_URL" "$CUTOFF_MASTER_REV"
 checkout pathcache-master "$PATHCACHE_FEMTOVG_URL" "$PATHCACHE_MASTER_REV"
 checkout pathcache-fixed "$PATHCACHE_FIXED_URL" "$PATHCACHE_FIXED_REV"
+checkout shaping-master "$SHAPING_FEMTOVG_URL" "$SHAPING_MASTER_REV"
+checkout shaping-fixed "$SHAPING_FIXED_URL" "$SHAPING_FIXED_REV"
 
 # All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
@@ -120,10 +133,10 @@ for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     fi
 done
 
-# One target directory for the ten crates, so that the dependencies are compiled once.
+# One target directory for the twelve crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master pathcache-master pathcache-fixed; do
+for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master pathcache-master pathcache-fixed shaping-master shaping-fixed; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -228,6 +241,22 @@ master_checkout=pathcache-master
 compose side pathcache-trace 0 0 520 240 side-by-side
 compose side pathcache-bars 0 0 520 240 side-by-side
 
+# The shaping scenes print a table each, computed from what fill_text, measure_text and
+# break_text_vec returned, on both revisions.
+for scene in size wrap; do
+    for revision in master fixed; do
+        echo "shaping-$revision $scene:"
+        "$bin/shaping-$revision" "$roboto" "$scene" "out/$scene-$revision.png"
+    done >"out/$scene-summary.txt"
+    echo "$scene-master.png and $scene-fixed.png: $("$bin/compare" "out/$scene-master.png" "out/$scene-fixed.png")" >>"out/$scene-summary.txt"
+done
+master_checkout=shaping-master
+# The whole of both scenes.
+compose side size 0 0 720 268 side-by-side
+compose side wrap 0 0 720 260 side-by-side
+# The right end of the four lines of the size scene, with their ticks.
+compose zoom size 576 92 96 160 zoom
+
 echo
 for scene in $scenes; do
     echo "$scene, as femtovg/master draws it:"
@@ -243,6 +272,8 @@ echo "the cut-off scenes, as femtovg/cutoff-master draws them:"
 sed 's/^/  /' out/cutoff-joins-summary.txt out/cutoff-caps-summary.txt out/cutoff-star-summary.txt
 echo "the path-cache scenes, as femtovg/pathcache-master and femtovg/pathcache-fixed draw them:"
 sed 's/^/  /' out/pathcache-trace-summary.txt out/pathcache-bars-summary.txt
+echo "the shaping scenes, as femtovg/shaping-master and femtovg/shaping-fixed draw them:"
+sed 's/^/  /' out/size-summary.txt out/wrap-summary.txt
 
 echo
 echo "out/ compared with images/:"
@@ -261,10 +292,11 @@ check() {
     fi
     printf '  %-32s %s\n' "$1" "$result"
 }
-for scene in $scenes spacing gradient-text gradient-shadow pathcache-trace pathcache-bars; do
-    # Of these scenes, an enlargement is made of the About panel and of the menu card only.
+for scene in $scenes spacing gradient-text gradient-shadow pathcache-trace pathcache-bars size wrap; do
+    # Of these scenes, an enlargement is made of the About panel, of the menu card and of the
+    # size scene only.
     case $scene in
-    about | menu) zoom=$scene-zoom.png ;;
+    about | menu | size) zoom=$scene-zoom.png ;;
     *) zoom= ;;
     esac
     for file in "$scene-master.png" "$scene-fixed.png" "$scene-side-by-side.png" $zoom "$scene-summary.txt"; do
