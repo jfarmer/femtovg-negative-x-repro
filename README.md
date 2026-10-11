@@ -594,7 +594,7 @@ with wgpu on Metal. Another GPU or driver may give a few different pixels.
 | `PATHCACHE_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`     | where the revision with the path-cache bug is                       |
 | `PATHCACHE_MASTER_REV` | `8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d` | upstream master when the path-cache scenes were written            |
 | `PATHCACHE_FIXED_URL` | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
-| `PATHCACHE_FIXED_REV` | `d3715c0dfb7a047792da83ce8a973c6772558bed` | the commit of the fourth pull request                               |
+| `PATHCACHE_FIXED_REV` | `aa608355deae143db1d1989deefe1f96cba25e1b` | the commit of the fourth pull request                               |
 | `SHAPING_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`       | where the revision with the shaping-key bug is                      |
 | `SHAPING_MASTER_REV`  | `d70ffeb79658606fe220801115ccefff33897e86` | upstream master when the shaping scenes were written                |
 | `SHAPING_FIXED_URL`   | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
