@@ -68,7 +68,7 @@ PATHCACHE_FIXED_REV=${PATHCACHE_FIXED_REV:-aa608355deae143db1d1989deefe1f96cba25
 SHAPING_FEMTOVG_URL=${SHAPING_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 SHAPING_MASTER_REV=${SHAPING_MASTER_REV:-8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d}
 SHAPING_FIXED_URL=${SHAPING_FIXED_URL:-https://github.com/jfarmer/femtovg}
-SHAPING_FIXED_REV=${SHAPING_FIXED_REV:-7e6ac90bda4ec1d46114d5a8e0f8ec2c6f31cf20}
+SHAPING_FIXED_REV=${SHAPING_FIXED_REV:-1668ea0f84f8d08f6034f842d80db7c92adbb27f}
 
 die() {
     echo "run.sh: $*" >&2
@@ -241,8 +241,8 @@ master_checkout=pathcache-master
 compose side pathcache-trace 0 0 520 240 side-by-side
 compose side pathcache-bars 0 0 520 240 side-by-side
 
-# The shaping scenes print a table each, computed from what fill_text, measure_text and
-# break_text_vec returned, on both revisions.
+# The shaping scenes print a table each, computed from what measure_text, break_text_vec and
+# fill_text returned, on both revisions.
 for scene in size wrap; do
     for revision in master fixed; do
         echo "shaping-$revision $scene:"
@@ -252,10 +252,10 @@ for scene in size wrap; do
 done
 master_checkout=shaping-master
 # The whole of both scenes.
-compose side size 0 0 720 268 side-by-side
-compose side wrap 0 0 720 260 side-by-side
-# The right end of the four lines of the size scene, with their ticks.
-compose zoom size 576 92 96 160 zoom
+compose side size 0 0 681 200 side-by-side
+compose side wrap 0 0 466 316 side-by-side
+# The right end of the 10.09 px line of the size scene and of its cell.
+compose zoom size 560 132 120 34 zoom
 
 echo
 for scene in $scenes; do

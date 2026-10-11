@@ -107,19 +107,22 @@ bar:
 The seventh bug is the shaping-key bug. The key of femtovg's shaping caches rounds the font size
 to a tenth of a pixel and the width that text is wrapped at to a whole pixel, while shaping reads
 both exactly. So text at two font sizes in one tenth of a pixel shares one cache entry, and so
-does text wrapped at two widths in one whole pixel, and the second call gets what the first
-computed. The fix is not a pull request yet. Left: upstream master at
+does text wrapped at two widths in one whole pixel, and a call gets what an earlier call
+computed until the entry leaves the cache. The fix is not a pull request yet. Left: upstream
+master at
 [`8d092f2`](https://github.com/femtovg/femtovg/commit/8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d).
-The sentence, the font sizes, the paragraph and the box widths were chosen by hand (see below).
+Both scenes lay a box out from one call and paint its text from a later one, after 1100 other
+strings were shaped. The sentence, the font sizes, the paragraph and the box widths were chosen
+by hand (see below).
 
-One sentence at font sizes 10, 10.03, 10.06 and 10.09 px, Roboto Flex. A red tick marks where
-each line should end:
+One sentence at 10 px, then at 10.09 px in a cell as wide as it measured, Roboto Flex:
 
-![One sentence at four font sizes on master and with the fix](images/size-side-by-side.png)
+![One sentence at 10 px and at 10.09 px in a cell as wide as it measured, on master and with the fix](images/size-side-by-side.png)
 
-One paragraph in two boxes whose widths differ by 0.2 px, Roboto Flex 13 px:
+One paragraph in two boxes, the second 0.2 px narrower, each with a button below it, Roboto
+Flex 13 px:
 
-![One paragraph in two boxes on master and with the fix](images/wrap-side-by-side.png)
+![One paragraph in two boxes with a button below each, on master and with the fix](images/wrap-side-by-side.png)
 
 `images/` also has each whole render, and a 4x enlargement of part of the About panel, of the
 menu card, of the shadow scene and of the size scene.
@@ -475,87 +478,88 @@ whole string in `shaping_run_cache`, and `shape_run` keeps every word of it in
 `shaped_words_cache`. The key of both caches is a `ShapingId`, and besides the letter spacing
 `ShapingId::new` rounds two of its inputs: the font size to a tenth of a pixel, as
 `(font_size * 10.0).trunc() as u32`, and the width that `break_text` and `break_text_vec` wrap at
-to a whole pixel, as `max_width.trunc() as i32`. Shaping reads both exactly: `shape_word` scales every advance by
-`font_size / units_per_em`, and `shape_run` moves a word to the next line when the width of the
-line plus the width of the word reaches `max_width`. So the same text at two font sizes in one
-tenth of a pixel shares one cache entry, and so does the same text wrapped at two widths in one
-whole pixel. The entry holds what the first call computed. The fix keys both with `to_bits()`.
+to a whole pixel, as `max_width.trunc() as i32`. Shaping reads both exactly: `shape_word` scales
+every advance by `font_size / units_per_em`, and `shape_run` moves a word to the next line when
+the width of the line plus the width of the word reaches `max_width`. So the same text at two
+font sizes in one tenth of a pixel shares one cache entry, and so does the same text wrapped at
+two widths in one whole pixel. The entry holds what the first call computed. The fix keys both
+with `to_bits()`.
 
-The `size` scene draws one sentence four times, at font sizes 10, 10.03, 10.06 and 10.09 px,
-the 10 px line first, every line starting at the same x:
+Both caches are LRU caches of 1000 entries. So a call gets the first call's result until 1000
+other strings have been shaped, and computes its own after that. An application lays a box out
+from one call and paints its text from another, and the two can fall on either side of that.
+Both scenes do that: they lay out, shape 1100 other strings, and paint.
 
-```rust
-let paint = sample.clone().with_font_size(size); // sample is left-aligned
-canvas.fill_text(LEFT, baseline, SENTENCE, &paint)?;
-```
-
-A red tick marks where each line should end. Its x is `LEFT` plus the width that a new
-`TextContext`, with nothing in its caches, measures for the sentence at that font size. On
-master the three later lines get the advances of the 10 px line: `TextMetrics::width()` is
-595.449 px for all four, and the 10.09 px line ends 5.359 px left of its tick. With the fix the
-width grows with the font size and every line ends at its tick.
-
-The glyph atlas has its own key, `RenderedGlyphId` in `src/text.rs`, which still rounds the
-font size to a tenth of a pixel, and the fix does not change it, so every bitmap of the four
-lines is stored as a 10 px bitmap. On master the picture is the 10 px line drawn four times, and
-with the fix the three later lines are drawn from that same atlas at the advances of 10.03,
-10.06 and 10.09 px. The right end of the four lines, enlarged 4 times:
-
-![The right end of the four lines and their ticks enlarged, on master and with the fix](images/size-zoom.png)
-
-The `wrap` scene breaks one paragraph into two boxes, the first 0.1 px narrower than the first
-eight words of the paragraph and the second 0.1 px wider, so that both widths lie in one whole
-pixel:
+The `size` scene draws one sentence at 10 px, then measures it at 10.09 px for the width of its
+cell, and paints it at 10.09 px after the other strings:
 
 ```rust
-let lines = canvas.break_text_vec(max_width, PARAGRAPH, &body)?; // box 1 first, then box 2
-for range in &lines {
-    canvas.fill_text(left, baseline, &PARAGRAPH[range.clone()], &body)?;
-    baseline += LINE_HEIGHT;
-}
+canvas.fill_text(LEFT, first_baseline, SENTENCE, &at_10_px)?;
+let cell = canvas.measure_text(LEFT, baseline, SENTENCE, &at_10_09_px)?.width();
+// The cell border is drawn from `cell`; then 1100 other strings are shaped.
+canvas.fill_text(LEFT, baseline, SENTENCE, &at_10_09_px)?;
 ```
 
-The first eight words are 233.346 px wide, so the eighth, "measured", does not fit in box 1 at
-233.246 px and does fit in box 2 at 233.446 px. On master box 2 gets the lines of box 1, with
-"measured" at the start of the second line, and from there on every line differs from what a
-new `TextContext` breaks. With the fix box 2 keeps "measured" on its first line, which is 0.1 px
-narrower than the box, and its lines are the ones a new `TextContext` breaks. Box 1 is the same
-on both revisions.
+On master the measurement gets the entry of the 10 px line, 595.449 px, and the paint computes
+the line at 10.09 px, 600.808 px, so the text runs 5.359 px past the cell it was measured for.
+With the fix both are 600.808 px. The right end of the cell, enlarged 4 times:
+
+![The right end of the 10.09 px line and its cell enlarged, on master and with the fix](images/size-zoom.png)
+
+The glyph atlas has its own key, `RenderedGlyphId` in `src/text.rs`, which still rounds the font
+size to a tenth of a pixel, and the fix does not change it, so the 10.09 px line is drawn with
+the 10 px bitmaps on both revisions. Only the advances differ.
+
+The `wrap` scene breaks one paragraph into two boxes. The first box is 0.1 px wider than the
+paragraph's first seven words, so they stay on its first line, and it is laid out and painted at
+once. The second box is 0.1 px narrower than those words, so the seventh goes to its second line
+and the paragraph needs one line more. Each box has a button directly below it. The second box
+is laid out from one `break_text_vec` call and painted from another after the other strings:
+
+```rust
+let lines = canvas.break_text_vec(narrow, PARAGRAPH, &body)?;
+// The box border and the button below it are placed from `lines.len()`; then 1100 other
+// strings are shaped.
+let lines = canvas.break_text_vec(narrow, PARAGRAPH, &body)?;
+// Each line is drawn with `fill_text`.
+```
+
+On master the layout call gets the first box's entry, 9 lines, and the paint call computes
+10, so the last line is drawn over the button. With the fix both calls give 10 lines.
 
 ### What was chosen to make the effect easy to see
 
 Nothing was searched for. These were chosen by hand:
 
-- In the size scene, four font sizes in one tenth of a pixel, 0.03 px apart, so that the three
-  later lines fall short of their ticks by three different amounts.
-- A sentence as long as fits in the 720 px picture at 10 px. On master a line drawn at size s
-  falls short by its width at 10 px times (s - 10) / 10, so the longer the line, the further it
-  falls short, and 595.449 px times 0.09 / 10 is the 5.359 px of the last line.
-- A tick where each line should end, from a measurement that cannot find an earlier one in a
-  cache. Without it the picture would show four lines of different lengths and nothing to say
-  which lengths are right.
-- In the wrap scene, the narrower box first. `break_text_vec` then caches the break before the
-  eighth word, and the wider box gets it. In the other order the wider box would cache the break
-  after the eighth word, the narrower box would get that, and its first line would be 0.1 px
-  too wide for the box, which no picture shows.
-- Box widths 0.1 px either side of the width of the first eight words. The border of a box is
-  drawn 4 px outside its text on every side, so the two boxes look the same width, and they are
-  0.2 px apart.
-- A paragraph long enough that the moved word changes every line after it.
+- A box laid out from one call and painted from another, with 1100 strings shaped between
+  them, because an application does the same and the two calls then disagree on master. Within
+  one call the width, the break position and the glyph positions all come from one entry, so a
+  single call draws nothing that looks wrong.
+- Font sizes 10 and 10.09 px, in one tenth of a pixel and as far apart as that allows. On master
+  the painted line is wider than its cell by its width at 10 px times 0.09 / 10, so the sentence
+  is as long as the card allows: 595.449 px times 0.09 / 10 is the 5.359 px it runs past the
+  cell.
+- Box widths 0.1 px either side of the width of the first seven words of the paragraph, so that
+  both lie in one whole pixel. The borders are drawn 2 px outside the text, so the two boxes
+  look the same width.
+- A paragraph that needs one line more in the narrower box, so that the box laid out from the
+  wider box's entry is one line too short. `src/shaping.rs` checks that through two new
+  `TextContext`s before it draws.
+- A button directly below each box, so that the extra line has something to land on.
 
-| font size | glyphs | `TextMetrics::width()` on master | with the fix | on master the line ends left of its tick by |
-| --------- | ------ | -------------------------------- | ------------ | ------------------------------------------- |
-| 10 px     | 163    | 595.449 px                       | 595.449 px   | 0 px                                        |
-| 10.03 px  | 163    | 595.449 px                       | 597.236 px   | 1.786 px                                    |
-| 10.06 px  | 163    | 595.449 px                       | 599.022 px   | 3.573 px                                    |
-| 10.09 px  | 163    | 595.449 px                       | 600.808 px   | 5.359 px                                    |
+| call                                             | on master  | with the fix |
+| ------------------------------------------------ | ---------- | ------------ |
+| `fill_text` at 10 px                             | 595.449 px | 595.449 px   |
+| `measure_text` at 10.09 px, for the cell         | 595.449 px | 600.808 px   |
+| `fill_text` at 10.09 px, 1100 strings later      | 600.808 px | 600.808 px   |
+| `break_text_vec` for box 1, 172.858 px           | 9 lines    | 9 lines      |
+| `break_text_vec` for box 2, 172.658 px, layout   | 9 lines    | 10 lines     |
+| `break_text_vec` for box 2, 1100 strings later   | 10 lines   | 10 lines     |
 
-With the fix every value in the last column is 0 px. [`src/shaping.rs`](src/shaping.rs) draws
-both scenes and computes these numbers from the `TextMetrics` that `fill_text` returned and from
-the same measurement through a new `TextContext`. They are not measured from pixels.
-[`images/size-summary.txt`](images/size-summary.txt) has all of them, and
-[`images/wrap-summary.txt`](images/wrap-summary.txt) has the lines of both boxes on both
-revisions, with the lines a new `TextContext` breaks where they differ.
+[`src/shaping.rs`](src/shaping.rs) draws both scenes and prints these values from what
+`measure_text`, `break_text_vec` and `fill_text` returned. They are not measured from pixels.
+[`images/size-summary.txt`](images/size-summary.txt) and
+[`images/wrap-summary.txt`](images/wrap-summary.txt) have them for both revisions.
 
 ## Running it
 
@@ -594,7 +598,7 @@ with wgpu on Metal. Another GPU or driver may give a few different pixels.
 | `SHAPING_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`       | where the revision with the shaping-key bug is                      |
 | `SHAPING_MASTER_REV`  | `8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d` | upstream master when the shaping scenes were written                |
 | `SHAPING_FIXED_URL`   | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
-| `SHAPING_FIXED_REV`   | `7e6ac90bda4ec1d46114d5a8e0f8ec2c6f31cf20` | the last commit of the fix                                          |
+| `SHAPING_FIXED_REV`   | `1668ea0f84f8d08f6034f842d80db7c92adbb27f` | the commit of the fix                                               |
 
 The first four are for the About panel and the menu card, the next four for the specimen, the
 next four for the two gradient scenes, the next two for the shadow scene, the next two for the
