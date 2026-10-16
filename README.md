@@ -1,8 +1,8 @@
 # femtovg: comparison images for seven bugs
 
-The [text frame benchmark](#the-text-frame-benchmark) measures the CPU cost of drawing a
-Slint-like frame of text before and after a change that splits out color glyphs only when a
-glyph run is drawn as outlines.
+The [text frame benchmark](#the-text-frame-benchmark) measures the cost of drawing a Slint-like
+frame of text, labels or a scrolling table, on no renderer, OpenGL and WGPU, before and after a
+change that splits out color glyphs only when a glyph run is drawn as outlines.
 
 The [portable profiling harness](profiling/README.md) compares CPU work for the
 direct-text gradient fix (#389), with draw/flush timing, allocation accounting,
@@ -567,45 +567,71 @@ Nothing was searched for. These were chosen by hand:
 
 ## The text frame benchmark
 
-[`textframe.sh`](textframe.sh) measures the CPU work of drawing one frame of text on two femtovg
+[`textframe.sh`](textframe.sh) measures the cost of drawing one frame of text on two femtovg
 revisions: upstream master at
 [`9f5ad26`](https://github.com/femtovg/femtovg/commit/9f5ad2614e922677a467e2d6f66fecba14d3a30a)
 and the commit of a change that splits out color glyphs only when a glyph run is drawn as
 outlines,
 [`5e4b6e4`](https://github.com/jfarmer/femtovg/commit/5e4b6e486146b28d8439ef419eef86e5d433916b).
-It also draws the frame on OpenGL with both revisions and checks that the pixels are the same.
+It also draws the frames with both revisions on OpenGL and on WGPU and checks that the pixels are
+the same.
 
-The frame, in [`src/textframe.rs`](src/textframe.rs), is 200 labels of 10 to 40 characters at
-12 to 16 px, about 5,000 glyphs in Roboto Regular. Each label is drawn with save, translate and
-restore and its own `Paint`, the way Slint's femtovg renderer draws text, and the glyph atlas is
-warm. `glyph_run` passes glyphs shaped once at startup to `fill_glyph_run`, as Slint does, in a
-build with only femtovg's `swash` feature, which is Slint's configuration. `fill_text` uses
-femtovg's own shaping with its default features. The `void` renderer discards the commands, so
-it measures femtovg's own work. The `gl` renderer adds the OpenGL backend and the driver's CPU
-work, drawing into a 1920 x 1080 image target of a hidden window. GPU time is not measured.
+[`src/textframe.rs`](src/textframe.rs) has two scenes, both in Roboto Regular and both drawn the
+way Slint's femtovg renderer draws text: each piece of text under its own save, translate and
+restore, with its own `Paint`.
+
+- `labels` is 200 labels of 10 to 40 characters at 12 to 16 px, about 5,000 glyphs, at fixed
+  places.
+- `table` is a table of 5,000 rows and 8 columns of 13 px text under a header row. Every frame
+  scrolls it up by 7.25 px and draws the rows in view (about 48 rows and 390 cells), a new
+  rectangle path behind every other row, and a clip below the header, the way a Slint `ListView`
+  of rows is drawn.
+
+![The table scene, one frame](images/textframe-table.png)
+
+`glyph_run` passes glyphs shaped once at startup to `fill_glyph_run`, as Slint does, in a build
+with only femtovg's `swash` feature, which is Slint's configuration. `fill_text` uses femtovg's
+own shaping with its default features. The glyph atlas is warm. There are three renderers:
+
+- `void` discards the commands, so it measures femtovg's own work.
+- `gl` adds the OpenGL backend and the driver's CPU work, drawing into a 1920 x 1080 image
+  target of a hidden window.
+- `wgpu` draws into a 1920 x 1080 texture with femtovg's WGPU renderer, submits every frame and
+  waits for the GPU to finish it, so its frame times include the GPU's work.
 
 Instructions per frame are the difference between a 2,200-frame and a 200-frame run, read from
-`/usr/bin/time -l`, so setup and the first frames cancel. The times are the median frame of the
-long run. On an Apple M4 Max, with a load average of about 5, `./textframe.sh` printed:
+`/usr/bin/time -l`, so setup and the first frames cancel. They count every thread of the process,
+the driver's included. The times are the median frame of the long run. Each of the five repeats
+runs master and then the change, so that a change in the machine's load reaches both, and the last
+column is the median over those pairs of the change's frame time divided by master's. On an Apple
+M4 Max, with a load average of 7 to 9, `./textframe.sh` printed:
 
-| Per frame | master, instructions | change, instructions | master, time | change, time |
-| --- | ---: | ---: | ---: | ---: |
-| `glyph_run`, `swash` only, `void` | 5.83 M | 4.05 M | 361 µs | 272 µs |
-| `fill_text`, default features, `void` | 7.65 M | 5.67 M | 466 µs | 384 µs |
-| `glyph_run`, `swash` only, `gl` | 9.02 M | 7.30 M | 501 µs | 409 µs |
+| Per frame | Instructions, master | Instructions, change | Time, master | Time, change | Change / master |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `labels`, `glyph_run`, `swash` only, `void` | 5.83 M | 4.05 M | 365 µs | 274 µs | 0.75 |
+| `labels`, `fill_text`, default features, `void` | 7.67 M | 5.68 M | 488 µs | 400 µs | 0.81 |
+| `labels`, `glyph_run`, `swash` only, `gl` | 9.06 M | 7.26 M | 513 µs | 425 µs | 0.84 |
+| `labels`, `glyph_run`, `swash` only, `wgpu` | 8.50 M | 6.73 M | 1,069 µs | 960 µs | 0.88 |
+| `table`, `glyph_run`, `swash` only, `void` | 7.94 M | 5.79 M | 568 µs | 397 µs | 0.68 |
+| `table`, `fill_text`, default features, `void` | 11.35 M | 9.00 M | 678 µs | 571 µs | 0.84 |
+| `table`, `glyph_run`, `swash` only, `gl` | 15.12 M | 12.98 M | 812 µs | 703 µs | 0.86 |
+| `table`, `glyph_run`, `swash` only, `wgpu` | 13.39 M | 11.24 M | 1,364 µs | 1,234 µs | 0.91 |
+| `table`, `fill_text`, default features, `wgpu` | 16.85 M | 14.53 M | 1,551 µs | 1,454 µs | 0.94 |
 
-The OpenGL frames hash the same on both revisions for labels in mixed colors, labels in one
-color and Apple Color Emoji labels, each drawn with `glyph_run` and with `fill_text`.
+The frames hash the same on both revisions, on OpenGL and on WGPU, for labels in mixed colors,
+labels in one color, Apple Color Emoji labels and the table, each drawn with `glyph_run` and with
+`fill_text`.
 
 ```sh
 ./textframe.sh
 ```
 
-This needs macOS (for the instruction counts), git, cargo and OpenGL. `TEXTFRAME_FEMTOVG_URL`,
-`TEXTFRAME_MASTER_REV`, `TEXTFRAME_FIXED_URL` and `TEXTFRAME_FIXED_REV` choose the two
-revisions, as the variables of `run.sh` do, and `REPEATS` (3) how many times each count is
-measured. The binary takes `<glyph_run|fill_text> <frames> [void|gl]` and reads more settings
-from the environment, listed at the top of `src/textframe.rs`.
+This needs macOS (for the instruction counts), git, cargo, OpenGL and a GPU that wgpu can use.
+`TEXTFRAME_FEMTOVG_URL`, `TEXTFRAME_MASTER_REV`, `TEXTFRAME_FIXED_URL` and `TEXTFRAME_FIXED_REV`
+choose the two revisions, as the variables of `run.sh` do, and `REPEATS` (5) how many pairs of
+runs each row measures. The binary takes `<glyph_run|fill_text> <frames> [void|gl|wgpu]
+[labels|table]` and reads more settings from the environment, listed at the top of
+`src/textframe.rs`. `SCREENSHOT=<file.ppm>` saves the last frame drawn with `gl` or `wgpu`.
 
 ## Running it
 

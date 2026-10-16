@@ -19,10 +19,12 @@ textlayout = ["femtovg/textlayout"]
 swash = ["femtovg/swash"]
 
 [dependencies]
-femtovg = { path = "../../femtovg/textframe-master", default-features = false }
+femtovg = { path = "../../femtovg/textframe-master", default-features = false, features = ["wgpu"] }
 glutin = "0.32.3"
 glutin-winit = "0.5.0"
 raw-window-handle = "0.6.2"
 winit = "0.30.12"
+wgpu = "30.0.0"
+pollster = "1.0"
 # Shapes the labels once at startup, outside the measured frames.
 swash = "0.2.6"

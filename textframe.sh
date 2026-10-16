@@ -1,6 +1,7 @@
 #!/bin/sh
-# Measures the CPU cost of drawing a Slint-like frame of text (src/textframe.rs) on two femtovg
-# revisions, and checks that both revisions draw the same pixels.
+# Measures the cost of drawing a Slint-like frame of text (src/textframe.rs) on two femtovg
+# revisions, in two scenes (200 labels, and a large table that scrolls every frame) and on three
+# renderers (none, OpenGL and WGPU), and checks that both revisions draw the same pixels.
 #
 # usage: ./textframe.sh
 #
@@ -9,20 +10,21 @@
 #   TEXTFRAME_MASTER_REV   that revision (upstream master when the benchmark was written)
 #   TEXTFRAME_FIXED_URL    where the revision with the change is fetched from (https://github.com/jfarmer/femtovg)
 #   TEXTFRAME_FIXED_REV    that revision (the commit of the pull request)
-#   REPEATS                how many times each count is measured; the median is printed (3)
+#   REPEATS                how many pairs of runs each row measures; the medians are printed (5)
 # A URL may be the path of a local clone, and then nothing is downloaded from it.
 #
 # Instructions per frame are the difference between a 2,200-frame and a 200-frame run, read from
 # `/usr/bin/time -l`, so the setup and the first frames cancel. That needs macOS. The `gl` rows
-# and the pixel check open a hidden window and need OpenGL. Everything is written to femtovg/,
-# target/ and out/textframe/, which git ignores.
+# open a hidden window and need OpenGL. The `wgpu` rows wait for the GPU after every frame, so
+# their times include the GPU's work. Everything is written to femtovg/, target/ and
+# out/textframe/, which git ignores.
 set -eu
 
 TEXTFRAME_FEMTOVG_URL=${TEXTFRAME_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 TEXTFRAME_MASTER_REV=${TEXTFRAME_MASTER_REV:-9f5ad2614e922677a467e2d6f66fecba14d3a30a}
 TEXTFRAME_FIXED_URL=${TEXTFRAME_FIXED_URL:-https://github.com/jfarmer/femtovg}
 TEXTFRAME_FIXED_REV=${TEXTFRAME_FIXED_REV:-5e4b6e486146b28d8439ef419eef86e5d433916b}
-REPEATS=${REPEATS:-3}
+REPEATS=${REPEATS:-5}
 
 die() {
     echo "textframe.sh: $*" >&2
@@ -66,50 +68,72 @@ for side in master fixed; do
     cp "target/release/textframe-$side" "$out/$side-swash"
 done
 
-# frame_cost <binary> <mode> <renderer>: prints the median instructions per frame and the median
-# frame time of the long run, over REPEATS pairs of runs.
-frame_cost() {
+# measure <binary> <mode> <renderer> <scene>: prints the instructions per frame and the median frame
+# time of a 2,200-frame run, with a 200-frame run subtracted from the instructions.
+measure() {
+    short=$( { /usr/bin/time -l "$1" "$2" 200 "$3" "$4" >/dev/null; } 2>&1 | awk '/instructions retired/ { print $1 }')
+    [ -n "$short" ] || die "/usr/bin/time -l printed no instruction count; this needs macOS"
+    { /usr/bin/time -l "$1" "$2" 2200 "$3" "$4"; } 2>&1 | awk -v short="$short" '
+        /instructions retired/ { instructions = ($1 - short) / 2000 }
+        /median_us=/ { split($0, f, "median_us="); split(f[2], g, " "); us = g[1] }
+        END { printf "%.0f %.1f\n", instructions, us }'
+}
+
+# compare <scene> <build> <mode> <renderer>: measures master and then the change, REPEATS times, so
+# that a change in the machine's load reaches both, and prints the medians of each and the median
+# over the pairs of the change's frame time divided by master's.
+compare() {
     i=0
     while [ "$i" -lt "$REPEATS" ]; do
-        short=$( { /usr/bin/time -l "$1" "$2" 200 "$3" >/dev/null; } 2>&1 | awk '/instructions retired/ { print $1 }')
-        long=$( { /usr/bin/time -l "$1" "$2" 2200 "$3"; } 2>&1)
-        [ -n "$short" ] || die "/usr/bin/time -l printed no instruction count; this needs macOS"
-        echo "$long" | awk -v short="$short" '
-            /instructions retired/ { instructions = ($1 - short) / 2000 }
-            /median_us=/ { split($0, f, "median_us="); split(f[2], g, " "); us = g[1] }
-            END { printf "%.0f %.1f\n", instructions, us }'
+        echo "$(measure "$out/master-$2" "$3" "$4" "$1") $(measure "$out/fixed-$2" "$3" "$4" "$1")"
         i=$((i + 1))
-    done | sort -n | awk '{ n++; ins[n] = $1; us[n] = $2 } END {
-        m = int((n + 1) / 2); printf "%.2f M instructions, %.0f us\n", ins[m] / 1e6, us[m] }'
+    done | awk '
+        function median(a, n,   i, j, t) {
+            for (i = 2; i <= n; i++) for (j = i; j > 1 && a[j - 1] > a[j]; j--) { t = a[j]; a[j] = a[j - 1]; a[j - 1] = t }
+            return n % 2 ? a[(n + 1) / 2] : (a[n / 2] + a[n / 2 + 1]) / 2
+        }
+        { n++; mi[n] = $1; mt[n] = $2; fi[n] = $3; ft[n] = $4; ratio[n] = $4 / $2 }
+        END {
+            printf "    master: %.2f M instructions, %.0f us\n", median(mi, n) / 1e6, median(mt, n)
+            printf "    fixed:  %.2f M instructions, %.0f us\n", median(fi, n) / 1e6, median(ft, n)
+            printf "    fixed frame time / master frame time, median of %d pairs: %.2f\n", n, median(ratio, n)
+        }'
 }
 
 echo
+echo "Load before: $(uptime | sed 's/.*load averages*: //')"
 echo "Per frame, median of $REPEATS:"
-for row in "swash glyph_run void" "default fill_text void" "swash glyph_run gl"; do
+for row in "labels swash glyph_run void" "labels default fill_text void" "labels swash glyph_run gl" \
+    "labels swash glyph_run wgpu" "table swash glyph_run void" "table default fill_text void" \
+    "table swash glyph_run gl" "table swash glyph_run wgpu" "table default fill_text wgpu"; do
     set -- $row
-    echo "  $2, $1 build, $3 renderer"
-    echo "    master: $(frame_cost "$out/master-$1" "$2" "$3")"
-    echo "    fixed:  $(frame_cost "$out/fixed-$1" "$2" "$3")"
+    echo "  $1, $3, $2 build, $4 renderer"
+    compare "$1" "$2" "$3" "$4"
 done
+echo "Load after: $(uptime | sed 's/.*load averages*: //')"
 
-# The same frame drawn on OpenGL by both revisions, hashed after the last frame.
+# The same frames drawn by both revisions, hashed after the last frame.
 echo
-echo "OpenGL pixel hashes:"
+echo "Pixel hashes:"
 emoji=/System/Library/Fonts/Apple\ Color\ Emoji.ttc
 differ=0
 for row in "swash glyph_run" "default fill_text"; do
     set -- $row
-    for scene in plain same-color emoji; do
-        font=fonts/Roboto-Regular.ttf
-        same=0
-        case $scene in
-            same-color) same=1 ;;
-            emoji) [ -f "$emoji" ] || continue; font=$emoji ;;
-        esac
-        a=$(PIXEL_HASH=1 SAME_COLOR=$same FONT="$font" "$out/master-$1" "$2" 3 gl | grep -o 'hash=[0-9a-f]*')
-        b=$(PIXEL_HASH=1 SAME_COLOR=$same FONT="$font" "$out/fixed-$1" "$2" 3 gl | grep -o 'hash=[0-9a-f]*')
-        if [ "$a" = "$b" ]; then result=same; else result=DIFFERENT; differ=1; fi
-        echo "  $2, $1 build, $scene: master $a, fixed $b, $result"
+    for renderer in gl wgpu; do
+        for scene in labels same-color emoji table; do
+            font=fonts/Roboto-Regular.ttf
+            same=0
+            drawn=labels
+            case $scene in
+                same-color) same=1 ;;
+                emoji) [ -f "$emoji" ] || continue; font=$emoji ;;
+                table) drawn=table ;;
+            esac
+            a=$(PIXEL_HASH=1 SAME_COLOR=$same FONT="$font" "$out/master-$1" "$2" 3 $renderer $drawn | grep -o 'hash=[0-9a-f]*')
+            b=$(PIXEL_HASH=1 SAME_COLOR=$same FONT="$font" "$out/fixed-$1" "$2" 3 $renderer $drawn | grep -o 'hash=[0-9a-f]*')
+            if [ "$a" = "$b" ]; then result=same; else result=DIFFERENT; differ=1; fi
+            echo "  $2, $1 build, $renderer, $scene: master $a, fixed $b, $result"
+        done
     done
 done
 [ "$differ" = 0 ] || die "the two revisions drew different pixels"
