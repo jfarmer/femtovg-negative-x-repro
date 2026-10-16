@@ -1,5 +1,9 @@
 # femtovg: comparison images for seven bugs
 
+The [text frame benchmark](#the-text-frame-benchmark) measures the CPU cost of drawing a
+Slint-like frame of text before and after a change that splits out color glyphs only when a
+glyph run is drawn as outlines.
+
 The [portable profiling harness](profiling/README.md) compares CPU work for the
 direct-text gradient fix (#389), with draw/flush timing, allocation accounting,
 macOS Instruments capture, and a Linux `perf` collector.
@@ -561,6 +565,48 @@ Nothing was searched for. These were chosen by hand:
 [`images/size-summary.txt`](images/size-summary.txt) and
 [`images/wrap-summary.txt`](images/wrap-summary.txt) have them for both revisions.
 
+## The text frame benchmark
+
+[`textframe.sh`](textframe.sh) measures the CPU work of drawing one frame of text on two femtovg
+revisions: upstream master at
+[`9f5ad26`](https://github.com/femtovg/femtovg/commit/9f5ad2614e922677a467e2d6f66fecba14d3a30a)
+and the commit of a change that splits out color glyphs only when a glyph run is drawn as
+outlines,
+[`5e4b6e4`](https://github.com/jfarmer/femtovg/commit/5e4b6e486146b28d8439ef419eef86e5d433916b).
+It also draws the frame on OpenGL with both revisions and checks that the pixels are the same.
+
+The frame, in [`src/textframe.rs`](src/textframe.rs), is 200 labels of 10 to 40 characters at
+12 to 16 px, about 5,000 glyphs in Roboto Regular. Each label is drawn with save, translate and
+restore and its own `Paint`, the way Slint's femtovg renderer draws text, and the glyph atlas is
+warm. `glyph_run` passes glyphs shaped once at startup to `fill_glyph_run`, as Slint does, in a
+build with only femtovg's `swash` feature, which is Slint's configuration. `fill_text` uses
+femtovg's own shaping with its default features. The `void` renderer discards the commands, so
+it measures femtovg's own work. The `gl` renderer adds the OpenGL backend and the driver's CPU
+work, drawing into a 1920 x 1080 image target of a hidden window. GPU time is not measured.
+
+Instructions per frame are the difference between a 2,200-frame and a 200-frame run, read from
+`/usr/bin/time -l`, so setup and the first frames cancel. The times are the median frame of the
+long run. On an Apple M4 Max, with a load average of about 5, `./textframe.sh` printed:
+
+| Per frame | master, instructions | change, instructions | master, time | change, time |
+| --- | ---: | ---: | ---: | ---: |
+| `glyph_run`, `swash` only, `void` | 5.83 M | 4.05 M | 361 µs | 272 µs |
+| `fill_text`, default features, `void` | 7.65 M | 5.67 M | 466 µs | 384 µs |
+| `glyph_run`, `swash` only, `gl` | 9.02 M | 7.30 M | 501 µs | 409 µs |
+
+The OpenGL frames hash the same on both revisions for labels in mixed colors, labels in one
+color and Apple Color Emoji labels, each drawn with `glyph_run` and with `fill_text`.
+
+```sh
+./textframe.sh
+```
+
+This needs macOS (for the instruction counts), git, cargo and OpenGL. `TEXTFRAME_FEMTOVG_URL`,
+`TEXTFRAME_MASTER_REV`, `TEXTFRAME_FIXED_URL` and `TEXTFRAME_FIXED_REV` choose the two
+revisions, as the variables of `run.sh` do, and `REPEATS` (3) how many times each count is
+measured. The binary takes `<glyph_run|fill_text> <frames> [void|gl]` and reads more settings
+from the environment, listed at the top of `src/textframe.rs`.
+
 ## Running it
 
 ```sh
@@ -611,6 +657,8 @@ name of a branch or tag. If a pull request or the fix has changed since this was
 `PATHCACHE_FIXED_REV=path-cache-invalidation ./run.sh` or
 `SHAPING_FIXED_REV=shaping-cache-key ./run.sh`.
 
-No font file is in this repository. Roboto Flex is read from femtovg's `examples/assets`.
+The only font file in this repository is `fonts/Roboto-Regular.ttf` (Apache-2.0, see its
+`.license` file), which the text frame benchmark uses. Roboto Flex is read from femtovg's
+`examples/assets`.
 New York is an Apple system font, read from `/System/Library/Fonts` or from `NEW_YORK_DIR`.
 Where it is missing, the menu card is not drawn.

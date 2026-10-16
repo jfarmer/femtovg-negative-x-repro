@@ -1,0 +1,28 @@
+# The text frame benchmark built against the femtovg checkout in femtovg/textframe-fixed, which
+# textframe.sh makes. Its features mirror femtovg's: the default build has femtovg's default
+# features, and `--no-default-features --features swash` is the configuration Slint uses.
+[package]
+name = "repro-textframe-fixed"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "textframe-fixed"
+path = "../../src/textframe.rs"
+
+[features]
+default = ["textlayout", "femtovg/image-loading"]
+textlayout = ["femtovg/textlayout"]
+swash = ["femtovg/swash"]
+
+[dependencies]
+femtovg = { path = "../../femtovg/textframe-fixed", default-features = false }
+glutin = "0.32.3"
+glutin-winit = "0.5.0"
+raw-window-handle = "0.6.2"
+winit = "0.30.12"
+# Shapes the labels once at startup, outside the measured frames.
+swash = "0.2.6"
