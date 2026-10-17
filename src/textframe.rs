@@ -20,8 +20,13 @@
 //! slice iterator; by default glyph_run passes an iterator whose size_hint is (0, None), like the flat_map behind
 //! parley's positioned_glyphs()), ONE_RUN=1 (labels with glyph_run only: every label's glyphs in one
 //! fill_glyph_run call with one paint, an upper bound for what merging the labels' draw calls could save),
-//! SAME_COLOR=1 (every label in one color), PIXEL_HASH=1 (gl and wgpu: print a hash of the frame after the last
-//! one), SCREENSHOT=<file.ppm> (gl and wgpu: save that frame as a binary PPM).
+//! SAME_COLOR=1 (every label in one color), EMOJI=1 (every third word of a label is an emoji; with
+//! FONT=/System/Library/Fonts/Apple Color Emoji.ttc, whose digits and .notdef glyph are outlines and whose emoji are
+//! PNG images, each label then mixes outline and PNG glyphs in one run), STROKE=1 (stroke_glyph_run or stroke_text,
+//! with the default 1 px line width, instead of the fill calls), ROTATE=<radians> (rotate each label and table cell
+//! by that angle after its translate, so that draw_glyph_run draws it as outlines rather than from the atlas),
+//! PIXEL_HASH=1 (gl and wgpu: print a hash of the frame after the last one), SCREENSHOT=<file.ppm> (gl and wgpu:
+//! save that frame as a binary PPM).
 //!
 //! The `void` renderer discards the commands, so it measures femtovg's own work up to the renderer: shaping and
 //! cache lookups, atlas lookups, quad and vertex building, command recording and the end-of-frame bookkeeping.
@@ -43,6 +48,8 @@ const WORDS: &[&str] = &[
     "Language", "Region", "Date", "Time", "Updates", "available", "Search", "results", "Notifications", "enabled",
     "Privacy", "Security", "Storage", "used", "of", "128", "GB", "Printer", "ready", "Temperature", "21.5", "°C",
 ];
+
+const EMOJI: &[&str] = &["😀", "🎉", "👍", "🔋", "📶", "🔒", "📁", "🌐"];
 
 /// Advances the seed of a linear congruential generator and returns its next value, so that every run draws
 /// the same labels and table.
@@ -80,15 +87,23 @@ struct Label {
 
 fn labels(font_ref: swash::FontRef<'_>, count: usize) -> Vec<Label> {
     let mut seed: u32 = 12345;
+    let emoji = std::env::var("EMOJI").is_ok_and(|v| v == "1");
     (0..count)
         .map(|i| {
             let target_len = 10 + (next(&mut seed) % 31) as usize;
             let mut text = String::new();
+            let mut words = 0;
             while text.chars().count() < target_len {
                 if !text.is_empty() {
                     text.push(' ');
                 }
-                text.push_str(WORDS[next(&mut seed) as usize % WORDS.len()]);
+                let pick = next(&mut seed) as usize;
+                text.push_str(if emoji && words % 3 == 1 {
+                    EMOJI[pick % EMOJI.len()]
+                } else {
+                    WORDS[pick % WORDS.len()]
+                });
+                words += 1;
             }
             let text: String = text.chars().take(target_len).collect::<String>().trim_end().to_owned();
             let size = 12.0 + (i % 5) as f32;
@@ -232,6 +247,8 @@ struct Bench {
     same_paint: bool,
     coords: Vec<i16>,
     exact_size_hint: bool,
+    stroke: bool,
+    rotate: f32,
     one_run: Vec<PositionedGlyph>,
     paints: Vec<Paint>,
     frame: Cell<usize>,
@@ -275,6 +292,8 @@ impl Bench {
                 .map(|v| v.split(',').map(|c| c.trim().parse().unwrap()).collect())
                 .unwrap_or_default(),
             exact_size_hint: std::env::var("EXACT_SIZE_HINT").is_ok_and(|v| v == "1"),
+            stroke: std::env::var("STROKE").is_ok_and(|v| v == "1"),
+            rotate: std::env::var("ROTATE").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0),
             one_run,
             paints,
             frame: Cell::new(0),
@@ -298,18 +317,31 @@ impl Bench {
         paint: &Paint,
     ) {
         match self.mode {
-            Mode::GlyphRun if self.exact_size_hint => {
-                canvas.fill_glyph_run(self.font_id, &self.coords, glyphs.iter().cloned(), paint).unwrap()
+            Mode::GlyphRun if self.exact_size_hint => self.draw_glyphs(canvas, glyphs.iter().cloned(), paint),
+            Mode::GlyphRun => self.draw_glyphs(canvas, glyphs.iter().cloned().flat_map(std::iter::once), paint),
+            #[cfg(feature = "textlayout")]
+            Mode::FillText if self.stroke => {
+                canvas.stroke_text(0.0, size, text, paint).unwrap();
             }
-            Mode::GlyphRun => canvas
-                .fill_glyph_run(self.font_id, &self.coords, glyphs.iter().cloned().flat_map(std::iter::once), paint)
-                .unwrap(),
             #[cfg(feature = "textlayout")]
             Mode::FillText => {
                 canvas.fill_text(0.0, size, text, paint).unwrap();
             }
             #[cfg(not(feature = "textlayout"))]
             Mode::FillText => unreachable!(),
+        }
+    }
+
+    fn draw_glyphs<T: Renderer>(
+        &self,
+        canvas: &mut Canvas<T>,
+        glyphs: impl IntoIterator<Item = PositionedGlyph>,
+        paint: &Paint,
+    ) {
+        if self.stroke {
+            canvas.stroke_glyph_run(self.font_id, &self.coords, glyphs, paint).unwrap();
+        } else {
+            canvas.fill_glyph_run(self.font_id, &self.coords, glyphs, paint).unwrap();
         }
     }
 
@@ -334,6 +366,9 @@ impl Bench {
         for (label, kept_paint) in self.labels.iter().zip(&self.paints) {
             canvas.save();
             canvas.translate(label.x, label.y);
+            if self.rotate != 0.0 {
+                canvas.rotate(self.rotate);
+            }
             if self.scissor {
                 canvas.intersect_scissor(0.0, 0.0, 460.0, 20.0);
             }
@@ -353,6 +388,9 @@ impl Bench {
         for cell in cells {
             canvas.save();
             canvas.translate(cell.x, y + (ROW_HEIGHT - TABLE_FONT_SIZE) / 2.0 - 2.0);
+            if self.rotate != 0.0 {
+                canvas.rotate(self.rotate);
+            }
             let paint = Self::paint(self.font_id, cell.color, TABLE_FONT_SIZE);
             self.draw_text(canvas, &cell.text, &cell.glyphs, TABLE_FONT_SIZE, &paint);
             canvas.restore();

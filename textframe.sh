@@ -1,7 +1,8 @@
 #!/bin/sh
 # Measures the cost of drawing a Slint-like frame of text (src/textframe.rs) on two femtovg
 # revisions, in two scenes (200 labels, and a large table that scrolls every frame) and on three
-# renderers (none, OpenGL and WGPU), and checks that both revisions draw the same pixels.
+# renderers (none, OpenGL and WGPU), and checks that both revisions draw the same pixels. The labels
+# are also measured stroked, and rotated so that femtovg draws them as outlines.
 #
 # usage: ./textframe.sh
 #
@@ -23,7 +24,7 @@ set -eu
 TEXTFRAME_FEMTOVG_URL=${TEXTFRAME_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 TEXTFRAME_MASTER_REV=${TEXTFRAME_MASTER_REV:-9f5ad2614e922677a467e2d6f66fecba14d3a30a}
 TEXTFRAME_FIXED_URL=${TEXTFRAME_FIXED_URL:-https://github.com/jfarmer/femtovg}
-TEXTFRAME_FIXED_REV=${TEXTFRAME_FIXED_REV:-5e4b6e486146b28d8439ef419eef86e5d433916b}
+TEXTFRAME_FIXED_REV=${TEXTFRAME_FIXED_REV:-12a7b961b9ac3f5c19905dd256dbdcf0c097101e}
 REPEATS=${REPEATS:-5}
 
 die() {
@@ -68,24 +69,36 @@ for side in master fixed; do
     cp "target/release/textframe-$side" "$out/$side-swash"
 done
 
-# measure <binary> <mode> <renderer> <scene>: prints the instructions per frame and the median frame
-# time of a 2,200-frame run, with a 200-frame run subtracted from the instructions.
+# The environment of the binary for each way of drawing the text: fill, stroke, or fill rotated by
+# 0.05 radians, which draw_glyph_run draws as outlines.
+variant_env() {
+    case $1 in
+        fill) echo "" ;;
+        stroke) echo STROKE=1 ;;
+        outlines) echo ROTATE=0.05 ;;
+        *) die "unknown variant $1" ;;
+    esac
+}
+
+# measure <binary> <mode> <renderer> <scene> <variant>: prints the instructions per frame and the
+# median frame time of a 2,200-frame run, with a 200-frame run subtracted from the instructions.
 measure() {
-    short=$( { /usr/bin/time -l "$1" "$2" 200 "$3" "$4" >/dev/null; } 2>&1 | awk '/instructions retired/ { print $1 }')
+    vars=$(variant_env "$5")
+    short=$( { /usr/bin/time -l env $vars "$1" "$2" 200 "$3" "$4" >/dev/null; } 2>&1 | awk '/instructions retired/ { print $1 }')
     [ -n "$short" ] || die "/usr/bin/time -l printed no instruction count; this needs macOS"
-    { /usr/bin/time -l "$1" "$2" 2200 "$3" "$4"; } 2>&1 | awk -v short="$short" '
+    { /usr/bin/time -l env $vars "$1" "$2" 2200 "$3" "$4"; } 2>&1 | awk -v short="$short" '
         /instructions retired/ { instructions = ($1 - short) / 2000 }
         /median_us=/ { split($0, f, "median_us="); split(f[2], g, " "); us = g[1] }
         END { printf "%.0f %.1f\n", instructions, us }'
 }
 
-# compare <scene> <build> <mode> <renderer>: measures master and then the change, REPEATS times, so
+# compare <scene> <build> <mode> <renderer> <variant>: measures master and then the change, REPEATS times, so
 # that a change in the machine's load reaches both, and prints the medians of each and the median
 # over the pairs of the change's frame time divided by master's.
 compare() {
     i=0
     while [ "$i" -lt "$REPEATS" ]; do
-        echo "$(measure "$out/master-$2" "$3" "$4" "$1") $(measure "$out/fixed-$2" "$3" "$4" "$1")"
+        echo "$(measure "$out/master-$2" "$3" "$4" "$1" "$5") $(measure "$out/fixed-$2" "$3" "$4" "$1" "$5")"
         i=$((i + 1))
     done | awk '
         function median(a, n,   i, j, t) {
@@ -103,12 +116,16 @@ compare() {
 echo
 echo "Load before: $(uptime | sed 's/.*load averages*: //')"
 echo "Per frame, median of $REPEATS:"
-for row in "labels swash glyph_run void" "labels default fill_text void" "labels swash glyph_run gl" \
-    "labels swash glyph_run wgpu" "table swash glyph_run void" "table default fill_text void" \
-    "table swash glyph_run gl" "table swash glyph_run wgpu" "table default fill_text wgpu"; do
+for row in "labels swash glyph_run void fill" "labels default fill_text void fill" "labels swash glyph_run gl fill" \
+    "labels swash glyph_run wgpu fill" "table swash glyph_run void fill" "table default fill_text void fill" \
+    "table swash glyph_run gl fill" "table swash glyph_run wgpu fill" "table default fill_text wgpu fill" \
+    "labels swash glyph_run void stroke" "labels default fill_text void stroke" "labels swash glyph_run gl stroke" \
+    "labels swash glyph_run wgpu stroke" "labels swash glyph_run void outlines" \
+    "labels default fill_text void outlines" "labels swash glyph_run gl outlines" \
+    "labels swash glyph_run wgpu outlines"; do
     set -- $row
-    echo "  $1, $3, $2 build, $4 renderer"
-    compare "$1" "$2" "$3" "$4"
+    echo "  $1, $3, $2 build, $4 renderer, $5"
+    compare "$1" "$2" "$3" "$4" "$5"
 done
 echo "Load after: $(uptime | sed 's/.*load averages*: //')"
 
@@ -120,19 +137,23 @@ differ=0
 for row in "swash glyph_run" "default fill_text"; do
     set -- $row
     for renderer in gl wgpu; do
-        for scene in labels same-color emoji table; do
-            font=fonts/Roboto-Regular.ttf
-            same=0
-            drawn=labels
-            case $scene in
-                same-color) same=1 ;;
-                emoji) [ -f "$emoji" ] || continue; font=$emoji ;;
-                table) drawn=table ;;
-            esac
-            a=$(PIXEL_HASH=1 SAME_COLOR=$same FONT="$font" "$out/master-$1" "$2" 3 $renderer $drawn | grep -o 'hash=[0-9a-f]*')
-            b=$(PIXEL_HASH=1 SAME_COLOR=$same FONT="$font" "$out/fixed-$1" "$2" 3 $renderer $drawn | grep -o 'hash=[0-9a-f]*')
-            if [ "$a" = "$b" ]; then result=same; else result=DIFFERENT; differ=1; fi
-            echo "  $2, $1 build, $renderer, $scene: master $a, fixed $b, $result"
+        for variant in fill stroke outlines; do
+            vars=$(variant_env $variant)
+            for scene in labels same-color emoji table; do
+                font=fonts/Roboto-Regular.ttf
+                same=0
+                mixed=0
+                drawn=labels
+                case $scene in
+                    same-color) same=1 ;;
+                    emoji) [ -f "$emoji" ] || continue; font=$emoji; mixed=1 ;;
+                    table) drawn=table ;;
+                esac
+                a=$(env PIXEL_HASH=1 SAME_COLOR=$same EMOJI=$mixed FONT="$font" $vars "$out/master-$1" "$2" 3 $renderer $drawn | grep -o 'hash=[0-9a-f]*')
+                b=$(env PIXEL_HASH=1 SAME_COLOR=$same EMOJI=$mixed FONT="$font" $vars "$out/fixed-$1" "$2" 3 $renderer $drawn | grep -o 'hash=[0-9a-f]*')
+                if [ "$a" = "$b" ]; then result=same; else result=DIFFERENT; differ=1; fi
+                echo "  $2, $1 build, $renderer, $variant, $scene: master $a, fixed $b, $result"
+            done
         done
     done
 done
