@@ -1,6 +1,8 @@
 # The text frame benchmark built against the femtovg checkout in femtovg/textframe-fixed, which
 # textframe.sh makes. Its features mirror femtovg's: the default build has femtovg's default
-# features, and `--no-default-features --features swash` is the configuration Slint uses.
+# features, and `--no-default-features --features swash` is the configuration Slint uses. The
+# default build also enables the `png` decoder of the `image` crate. femtovg needs it to draw PNG
+# glyphs such as emoji without `swash`, and does not enable it itself.
 [package]
 name = "repro-textframe-fixed"
 version = "0.0.0"
@@ -14,7 +16,8 @@ name = "textframe-fixed"
 path = "../../src/textframe.rs"
 
 [features]
-default = ["textlayout", "femtovg/image-loading"]
+default = ["textlayout", "image-loading"]
+image-loading = ["femtovg/image-loading", "dep:image"]
 textlayout = ["femtovg/textlayout"]
 swash = ["femtovg/swash"]
 
@@ -28,3 +31,4 @@ wgpu = "30.0.0"
 pollster = "1.0"
 # Shapes the labels once at startup, outside the measured frames.
 swash = "0.2.6"
+image = { version = "0.25.0", optional = true, default-features = false, features = ["png"] }

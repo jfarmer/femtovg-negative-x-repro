@@ -591,7 +591,9 @@ restore, with its own `Paint`.
 
 `glyph_run` passes glyphs shaped once at startup to `fill_glyph_run`, as Slint does, in a build
 with only femtovg's `swash` feature, which is Slint's configuration. `fill_text` uses femtovg's
-own shaping with its default features. The glyph atlas is warm. There are three renderers:
+own shaping with its default features, and with the `png` decoder of the `image` crate, which
+femtovg needs to draw PNG glyphs without `swash` and does not enable itself. The glyph atlas is
+warm. There are three renderers:
 
 - `void` discards the commands, so it measures femtovg's own work.
 - `gl` adds the OpenGL backend and the driver's CPU work, drawing into a 1920 x 1080 image
@@ -611,35 +613,36 @@ Instructions per frame are the difference between a 2,200-frame and a 200-frame 
 the driver's included. The times are the median frame of the long run. Each of the five repeats
 runs master and then the change, so that a change in the machine's load reaches both, and the last
 column is the median over those pairs of the change's frame time divided by master's. On an Apple
-M4 Max, with a load average of 5 to 16, `./textframe.sh` printed:
+M4 Max, with a load average of 4 to 7, `./textframe.sh` printed:
 
 | Per frame | Instructions, master | Instructions, change | Time, master | Time, change | Change / master |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `labels`, `glyph_run`, `swash` only, `void` | 5.83 M | 4.05 M | 375 µs | 295 µs | 0.78 |
-| `labels`, `fill_text`, default features, `void` | 7.69 M | 5.68 M | 524 µs | 403 µs | 0.77 |
-| `labels`, `glyph_run`, `swash` only, `gl` | 9.07 M | 7.29 M | 527 µs | 441 µs | 0.84 |
-| `labels`, `glyph_run`, `swash` only, `wgpu` | 8.53 M | 6.75 M | 1,154 µs | 1,035 µs | 0.90 |
-| `table`, `glyph_run`, `swash` only, `void` | 7.93 M | 5.79 M | 476 µs | 358 µs | 0.76 |
-| `table`, `fill_text`, default features, `void` | 11.37 M | 9.02 M | 664 µs | 549 µs | 0.83 |
-| `table`, `glyph_run`, `swash` only, `gl` | 15.15 M | 13.00 M | 799 µs | 694 µs | 0.87 |
-| `table`, `glyph_run`, `swash` only, `wgpu` | 13.42 M | 11.28 M | 1,005 µs | 872 µs | 0.87 |
-| `table`, `fill_text`, default features, `wgpu` | 16.91 M | 14.58 M | 1,317 µs | 1,171 µs | 0.92 |
-| `labels`, `glyph_run`, `swash` only, `void`, stroked | 5.93 M | 4.16 M | 363 µs | 277 µs | 0.77 |
-| `labels`, `fill_text`, default features, `void`, stroked | 7.78 M | 5.77 M | 485 µs | 388 µs | 0.80 |
-| `labels`, `glyph_run`, `swash` only, `gl`, stroked | 10.12 M | 8.35 M | 549 µs | 470 µs | 0.86 |
-| `labels`, `glyph_run`, `swash` only, `wgpu`, stroked | 11.29 M | 9.49 M | 850 µs | 758 µs | 0.89 |
-| `labels`, `glyph_run`, `swash` only, `void`, rotated | 92.35 M | 92.36 M | 4,944 µs | 4,902 µs | 1.00 |
-| `labels`, `fill_text`, default features, `void`, rotated | 95.66 M | 95.74 M | 5,106 µs | 5,153 µs | 1.01 |
-| `labels`, `glyph_run`, `swash` only, `gl`, rotated | 316.19 M | 316.05 M | 15,956 µs | 16,220 µs | 1.02 |
-| `labels`, `glyph_run`, `swash` only, `wgpu`, rotated | 245.60 M | 245.60 M | 17,653 µs | 17,656 µs | 1.01 |
+| `labels`, `glyph_run`, `swash` only, `void` | 5.83 M | 4.05 M | 343 µs | 260 µs | 0.76 |
+| `labels`, `fill_text`, default features, `void` | 7.70 M | 5.67 M | 465 µs | 358 µs | 0.77 |
+| `labels`, `glyph_run`, `swash` only, `gl` | 9.07 M | 7.28 M | 487 µs | 408 µs | 0.84 |
+| `labels`, `glyph_run`, `swash` only, `wgpu` | 8.52 M | 6.75 M | 718 µs | 630 µs | 0.88 |
+| `table`, `glyph_run`, `swash` only, `void` | 7.94 M | 5.80 M | 452 µs | 347 µs | 0.76 |
+| `table`, `fill_text`, default features, `void` | 11.37 M | 9.00 M | 659 µs | 547 µs | 0.83 |
+| `table`, `glyph_run`, `swash` only, `gl` | 15.12 M | 12.98 M | 790 µs | 695 µs | 0.88 |
+| `table`, `glyph_run`, `swash` only, `wgpu` | 13.43 M | 11.29 M | 996 µs | 877 µs | 0.87 |
+| `table`, `fill_text`, default features, `wgpu` | 16.94 M | 14.57 M | 1,723 µs | 1,601 µs | 0.91 |
+| `labels`, `glyph_run`, `swash` only, `void`, stroked | 5.91 M | 4.13 M | 377 µs | 290 µs | 0.77 |
+| `labels`, `fill_text`, default features, `void`, stroked | 7.78 M | 5.76 M | 511 µs | 467 µs | 0.90 |
+| `labels`, `glyph_run`, `swash` only, `gl`, stroked | 10.11 M | 8.33 M | 574 µs | 497 µs | 0.87 |
+| `labels`, `glyph_run`, `swash` only, `wgpu`, stroked | 11.28 M | 9.48 M | 1,193 µs | 1,046 µs | 0.89 |
+| `labels`, `glyph_run`, `swash` only, `void`, rotated | 92.35 M | 92.38 M | 5,024 µs | 5,024 µs | 1.00 |
+| `labels`, `fill_text`, default features, `void`, rotated | 95.68 M | 95.77 M | 5,372 µs | 5,238 µs | 1.00 |
+| `labels`, `glyph_run`, `swash` only, `gl`, rotated | 316.33 M | 315.90 M | 16,352 µs | 16,151 µs | 1.00 |
+| `labels`, `glyph_run`, `swash` only, `wgpu`, rotated | 245.53 M | 245.61 M | 18,451 µs | 17,997 µs | 0.98 |
 
 The frames hash the same on both revisions, on OpenGL and on WGPU, for labels in mixed colors,
 labels in one color, labels in Apple Color Emoji and the table, each drawn with `glyph_run` and
 with `fill_text`, filled, stroked and rotated. In the Apple Color Emoji labels every third word is
 an emoji, so each label mixes outline glyphs (the digits, and the `.notdef` boxes that stand in for
-letters) with PNG glyphs in one run. Each hashed run starts with an empty glyph atlas. Neither
-revision draws the emoji when the labels are stroked or rotated, so those frames do not check PNG
-glyphs.
+letters) with PNG glyphs in one run. Each hashed run starts with an empty glyph atlas. The default
+build draws the emoji filled, stroked and rotated. The `swash` build draws them only when they are
+filled and not rotated: with `swash` and without `textlayout`, femtovg drops PNG glyphs from
+stroked text and from text drawn as outlines, on both revisions.
 
 ```sh
 ./textframe.sh
