@@ -1,5 +1,5 @@
 #!/bin/sh
-# Draws nine scenes on two femtovg revisions each and four more on one revision each, composes
+# Draws nine scenes on two femtovg revisions each and five more on one revision each, composes
 # the comparison images, and compares the result with the files in images/.
 #
 # usage: ./run.sh
@@ -37,6 +37,10 @@
 #   SHAPING_MASTER_REV   that revision (upstream master when the scenes were written)
 #   SHAPING_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
 #   SHAPING_FIXED_REV    that revision (the commit of the fix)
+# The CBDT scene is for an eighth bug, which has no fix yet, so it has one revision. It is drawn
+# by two builds: with femtovg's default features, and with only `swash`, as Slint builds femtovg.
+#   CBDT_FEMTOVG_URL  where that revision is fetched from (https://github.com/femtovg/femtovg)
+#   CBDT_MASTER_REV   that revision (upstream master when the scene was written)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -69,6 +73,8 @@ SHAPING_FEMTOVG_URL=${SHAPING_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 SHAPING_MASTER_REV=${SHAPING_MASTER_REV:-8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d}
 SHAPING_FIXED_URL=${SHAPING_FIXED_URL:-https://github.com/jfarmer/femtovg}
 SHAPING_FIXED_REV=${SHAPING_FIXED_REV:-1668ea0f84f8d08f6034f842d80db7c92adbb27f}
+CBDT_FEMTOVG_URL=${CBDT_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+CBDT_MASTER_REV=${CBDT_MASTER_REV:-9f5ad2614e922677a467e2d6f66fecba14d3a30a}
 
 die() {
     echo "run.sh: $*" >&2
@@ -91,6 +97,7 @@ PATHCACHE_FEMTOVG_URL=$(absolute "$PATHCACHE_FEMTOVG_URL")
 PATHCACHE_FIXED_URL=$(absolute "$PATHCACHE_FIXED_URL")
 SHAPING_FEMTOVG_URL=$(absolute "$SHAPING_FEMTOVG_URL")
 SHAPING_FIXED_URL=$(absolute "$SHAPING_FIXED_URL")
+CBDT_FEMTOVG_URL=$(absolute "$CBDT_FEMTOVG_URL")
 
 cd "$(dirname "$0")"
 
@@ -120,6 +127,7 @@ checkout pathcache-master "$PATHCACHE_FEMTOVG_URL" "$PATHCACHE_MASTER_REV"
 checkout pathcache-fixed "$PATHCACHE_FIXED_URL" "$PATHCACHE_FIXED_REV"
 checkout shaping-master "$SHAPING_FEMTOVG_URL" "$SHAPING_MASTER_REV"
 checkout shaping-fixed "$SHAPING_FIXED_URL" "$SHAPING_FIXED_REV"
+checkout cbdt-master "$CBDT_FEMTOVG_URL" "$CBDT_MASTER_REV"
 
 # All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
@@ -133,10 +141,10 @@ for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     fi
 done
 
-# One target directory for the twelve crates, so that the dependencies are compiled once.
+# One target directory for the fourteen crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master pathcache-master pathcache-fixed shaping-master shaping-fixed; do
+for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master pathcache-master pathcache-fixed shaping-master shaping-fixed cbdt-default cbdt-swash; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -229,6 +237,17 @@ cutoff joins stack 520 290 stacked
 cutoff caps stack 520 290 stacked
 cutoff star side 320 320 side-by-side
 
+# The CBDT scene is drawn on one revision, by both builds. Each writes the font it builds, and
+# prints what swash, ttf-parser and skrifa return for the glyph without a bitmap and the colours
+# femtovg drew.
+cbdt_rev=$(git -C femtovg/cbdt-master rev-parse --short=7 HEAD)
+for build in default swash; do
+    echo "cbdt-$build:"
+    "$bin/cbdt-$build" "out/cbdt-$build.png" out/cbdt-gap.ttf
+done >out/cbdt-summary.txt
+echo "cbdt-default.png and cbdt-swash.png: $("$bin/compare" out/cbdt-default.png out/cbdt-swash.png)" >>out/cbdt-summary.txt
+"$bin/compose" stack "$roboto" out/cbdt-default.png "default features, master ($cbdt_rev)" out/cbdt-swash.png "swash only, master ($cbdt_rev)" 0 0 360 120 out/cbdt-stacked.png
+
 # The path-cache scenes print nothing, so their summaries have only the pixel comparison.
 for scene in trace bars; do
     for revision in master fixed; do
@@ -270,6 +289,8 @@ echo "the shadow scene, as femtovg/shadow-master draws it:"
 sed 's/^/  /' out/shadow-summary.txt
 echo "the cut-off scenes, as femtovg/cutoff-master draws them:"
 sed 's/^/  /' out/cutoff-joins-summary.txt out/cutoff-caps-summary.txt out/cutoff-star-summary.txt
+echo "the CBDT scene, as femtovg/cbdt-master draws it:"
+sed 's/^/  /' out/cbdt-summary.txt
 echo "the path-cache scenes, as femtovg/pathcache-master and femtovg/pathcache-fixed draw them:"
 sed 's/^/  /' out/pathcache-trace-summary.txt out/pathcache-bars-summary.txt
 echo "the shaping scenes, as femtovg/shaping-master and femtovg/shaping-fixed draw them:"
@@ -315,6 +336,9 @@ for scene in joins caps star; do
     for file in "cutoff-$scene-moved.png" "cutoff-$scene-shadow.png" "cutoff-$scene-$composed.png" "cutoff-$scene-summary.txt"; do
         check "$file"
     done
+done
+for file in cbdt-default.png cbdt-swash.png cbdt-stacked.png cbdt-summary.txt cbdt-gap.ttf; do
+    check "$file"
 done
 [ "$scenes" = "about menu" ] || echo "  the menu images were not made (see above)"
 if [ "$different" -eq 0 ]; then

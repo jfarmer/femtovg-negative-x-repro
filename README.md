@@ -1,4 +1,4 @@
-# femtovg: comparison images for seven bugs
+# femtovg: comparison images for eight bugs
 
 The [text frame benchmark](#the-text-frame-benchmark) measures the cost of drawing a Slint-like
 frame of text, labels or a scrolling table, on no renderer, OpenGL and WGPU, before and after a
@@ -10,7 +10,7 @@ macOS Instruments capture, and a Linux `perf` collector.
 
 The programs that made the comparison images for four pull requests to
 [femtovg](https://github.com/femtovg/femtovg), for one fix that is not a pull request yet, and
-for two more bugs that have no fix yet. In each image for a pull request or a fix, the left half
+for three more bugs that have no fix yet. In each image for a pull request or a fix, the left half
 is a scene built against upstream master and the right half is the same scene built against the
 commit of its pull request or fix. Both halves are drawn at device pixel ratio 1 and nothing is
 rescaled.
@@ -127,6 +127,18 @@ One paragraph in two boxes, the second 0.2 px narrower, each with a button below
 Flex 13 px:
 
 ![One paragraph in two boxes with a button below each, on master and with the fix](images/wrap-side-by-side.png)
+
+The eighth bug is the CBDT gap bug, which has no fix yet. A CBDT color bitmap font can mark a
+glyph in a range of bitmaps as having none, and femtovg then draws the next glyph's bitmap in its
+place, with and without the `swash` feature. Both renders are upstream master at
+[`9f5ad26`](https://github.com/femtovg/femtovg/commit/9f5ad2614e922677a467e2d6f66fecba14d3a30a),
+the upper with femtovg's default features and the lower with `swash` alone. The scene builds its
+own font by hand (see below).
+
+Glyph 1, a triangle with no bitmap, and glyph 2, a red bitmap, drawn with `fill_glyph_run`, then
+glyph 1's outline drawn with `fill_path`. The first and the third should be the same:
+
+![Glyph 1 drawn as glyph 2's red bitmap in both builds, beside its own triangle outline](images/cbdt-stacked.png)
 
 `images/` also has each whole render, and a 4x enlargement of part of the About panel, of the
 menu card, of the shadow scene and of the size scene.
@@ -565,6 +577,60 @@ Nothing was searched for. These were chosen by hand:
 [`images/size-summary.txt`](images/size-summary.txt) and
 [`images/wrap-summary.txt`](images/wrap-summary.txt) have them for both revisions.
 
+## The CBDT gap bug
+
+This bug shows with and without the `swash` feature, so the scene is built both ways.
+
+A CBDT color bitmap font keeps its bitmaps in `CBDT` and finds them through `CBLC`. `CBLC` lists
+ranges of glyphs. An index subtable of format 1 or 3 gives one offset per glyph in its range, and
+one more after the last, and a glyph's bitmap is the bytes from its offset to the next one. The
+[OpenType specification](https://learn.microsoft.com/en-us/typography/opentype/spec/eblc) uses
+equal offsets for a glyph in the range that has no bitmap: "A small number of missing glyphs can
+be efficiently represented in formats 1 or 3 by having the offset for the missing glyph be
+followed by the same offset for the next glyph, thus indicating a data size of zero."
+
+swash 0.2.10 (`src/strike.rs:601-625`) and ttf-parser 0.25.1 (`src/tables/cblc.rs:227-243`)
+read only the glyph's own offset. For a glyph without a bitmap they read the record that starts
+there, which belongs to the next glyph that has one. skrifa 0.44.0 reads both offsets through
+read-fonts 0.41.0 (`src/tables/bitmap.rs:35-75`) and reads the record only within that size, so
+it finds no bitmap.
+
+femtovg gets the wrong bitmap in both builds:
+
+- With the default features, `Font::glyph` in `src/text/font.rs` asks ttf-parser's
+  `glyph_raster_image` for a PNG first. It gets the next glyph's PNG, so `draw_glyph_run` treats
+  the glyph as a PNG glyph and draws that PNG.
+- With `swash` alone, `Font::glyph` finds the glyph's outline, so the glyph goes to the atlas as
+  an outline. But `render_glyph_swash` in `src/text.rs` asks swash for a color bitmap before the
+  outline, and swash returns the next glyph's.
+
+The scene's font has three glyphs. Glyph 0 is empty. Glyph 1 has a triangle in `glyf` and no
+bitmap. Glyph 2 has a red PNG and no outline. One index subtable of format 1 covers glyphs 1 and
+2, and glyph 1's two offsets are equal. Both builds draw a red square where the triangle belongs.
+The two builds scale the bitmap differently (the default build with the `image` crate, the other
+with swash), so their squares differ at the edges.
+
+A search found no real font with such a gap. Noto Color Emoji, the CBDT font in common use, has
+no gaps in its ranges in its standard, emoji-compat and Windows-compatible builds. None of the
+other 1,034 fonts searched (macOS's own, and those in the cargo registry and in the Slint and
+femtovg repositories) has a `CBDT` table.
+
+### What was chosen to make the effect easy to see
+
+Nothing was searched for. These were chosen by hand:
+
+- A triangle for glyph 1 and a square for glyph 2's bitmap, so the wrong glyph has the wrong
+  shape.
+- Black for the paint and red for the bitmap, so the bitmap shows in its own colour.
+- A font size of 64 px, below the 92 px limit, so that femtovg draws the glyphs from its atlas.
+- Glyph 1's outline drawn as a path to the right, to show what glyph 1 should look like.
+
+[`src/cbdt.rs`](src/cbdt.rs) builds the font and draws the scene.
+[`images/cbdt-summary.txt`](images/cbdt-summary.txt) has what swash, ttf-parser and skrifa
+return for glyphs 1 and 2, and the colour each build drew in the middle of the triangle and of
+its path. [`images/cbdt-gap.ttf`](images/cbdt-gap.ttf) is the font, for checking with other
+tools.
+
 ## The text frame benchmark
 
 [`textframe.sh`](textframe.sh) measures the cost of drawing one frame of text on two femtovg
@@ -662,8 +728,8 @@ runs each row measures. The binary takes `<glyph_run|fill_text> <frames> [void|g
 ```
 
 This needs git, cargo, a GPU that wgpu can use, and network access. The script checks out two
-femtovg revisions for each pull request and one each for the shadow scene and the cut-off
-scenes, builds the scenes against them, draws and composes the images into `out/`, and reports
+femtovg revisions for each pull request and one each for the shadow scene, the cut-off scenes
+and the CBDT scene, builds the scenes against them, draws and composes the images into `out/`, and reports
 how many pixels differ from the files in `images/`. The committed images were made on macOS 26
 with wgpu on Metal. Another GPU or driver may give a few different pixels.
 
@@ -693,11 +759,13 @@ with wgpu on Metal. Another GPU or driver may give a few different pixels.
 | `SHAPING_MASTER_REV`  | `8d092f2807d5f81eb8dbaa73d01e65b7e7dbde1d` | upstream master when the shaping scenes were written                |
 | `SHAPING_FIXED_URL`   | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
 | `SHAPING_FIXED_REV`   | `1668ea0f84f8d08f6034f842d80db7c92adbb27f` | the commit of the fix                                               |
+| `CBDT_FEMTOVG_URL`    | `https://github.com/femtovg/femtovg`       | where the revision with the CBDT gap bug is                         |
+| `CBDT_MASTER_REV`     | `9f5ad2614e922677a467e2d6f66fecba14d3a30a` | upstream master when the CBDT scene was written                     |
 
 The first four are for the About panel and the menu card, the next four for the specimen, the
 next four for the two gradient scenes, the next two for the shadow scene, the next two for the
-cut-off scenes, the next four for the two path-cache scenes and the last four for the two
-shaping scenes. A URL may be the path of a local clone. A revision is a full commit hash, or the
+cut-off scenes, the next four for the two path-cache scenes, the next four for the two shaping
+scenes and the last two for the CBDT scene. A URL may be the path of a local clone. A revision is a full commit hash, or the
 name of a branch or tag. If a pull request or the fix has changed since this was written, run
 `FIXED_REV=glyph-mask-phase-keys ./run.sh`,
 `SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh`,

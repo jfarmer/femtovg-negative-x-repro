@@ -1,0 +1,24 @@
+# The CBDT scene built against the femtovg checkout in femtovg/cbdt-master, which run.sh makes,
+# with `swash` and none of femtovg's default features, as Slint builds femtovg. swash,
+# ttf-parser and skrifa are here for the lookups the scene prints, at the versions femtovg's lock
+# file has.
+[package]
+name = "repro-cbdt-swash"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "cbdt-swash"
+path = "../../src/cbdt.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/cbdt-master", default-features = false, features = ["swash", "wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }
+swash = "=0.2.10"
+ttf-parser = "=0.25.1"
+skrifa = "=0.44.0"
