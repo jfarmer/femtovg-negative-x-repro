@@ -130,15 +130,15 @@ Flex 13 px:
 
 The eighth bug is the CBDT gap bug, which has no fix yet. A CBDT color bitmap font can mark a
 glyph in a range of bitmaps as having none, and femtovg then draws the next glyph's bitmap in its
-place, with and without the `swash` feature. Both renders are upstream master at
-[`9f5ad26`](https://github.com/femtovg/femtovg/commit/9f5ad2614e922677a467e2d6f66fecba14d3a30a),
-the upper with femtovg's default features and the lower with `swash` alone. The scene builds its
-own font by hand (see below).
+place, with and without the `swash` feature. The femtovg rows are upstream master at
+[`9f5ad26`](https://github.com/femtovg/femtovg/commit/9f5ad2614e922677a467e2d6f66fecba14d3a30a).
+The scene builds its own font by hand (see below).
 
-Glyph 1, a triangle with no bitmap, and glyph 2, a red bitmap, drawn with `fill_glyph_run`, then
-glyph 1's outline drawn with `fill_path`. The first and the third should be the same:
+Glyph 1 has a triangle outline and no bitmap, and glyph 2 has a red bitmap and no outline. Each
+library row draws the bitmap that the library returns for a glyph, or the glyph's outline when
+it returns none. Each femtovg row is what `fill_glyph_run` draws:
 
-![Glyph 1 drawn as glyph 2's red bitmap in both builds, beside its own triangle outline](images/cbdt-stacked.png)
+![What skrifa, swash, ttf-parser and two builds of femtovg give for a glyph without a bitmap](images/cbdt-figure.png)
 
 `images/` also has each whole render, and a 4x enlargement of part of the About panel, of the
 menu card, of the shadow scene and of the size scene.
@@ -608,7 +608,9 @@ The scene's font has three glyphs. Glyph 0 is empty. Glyph 1 has a triangle in `
 bitmap. Glyph 2 has a red PNG and no outline. One index subtable of format 1 covers glyphs 1 and
 2, and glyph 1's two offsets are equal. Both builds draw a red square where the triangle belongs.
 The two builds scale the bitmap differently (the default build with the `image` crate, the other
-with swash), so their squares differ at the edges.
+with swash), so their squares differ at the edges. The swash-only build has no `fill_text`, so it
+draws only its own row, and the default build draws the labelled figure with that row copied in
+pixel for pixel.
 
 A search found no real font with such a gap. Noto Color Emoji, the CBDT font in common use, has
 no gaps in its ranges in its standard, emoji-compat and Windows-compatible builds. None of the
@@ -623,12 +625,12 @@ Nothing was searched for. These were chosen by hand:
   shape.
 - Black for the paint and red for the bitmap, so the bitmap shows in its own colour.
 - A font size of 64 px, below the 92 px limit, so that femtovg draws the glyphs from its atlas.
-- Glyph 1's outline drawn as a path to the right, to show what glyph 1 should look like.
+- Rows for the three libraries, which draw what each one returns, so that the figure shows the
+  correct result next to the wrong ones.
 
 [`src/cbdt.rs`](src/cbdt.rs) builds the font and draws the scene.
 [`images/cbdt-summary.txt`](images/cbdt-summary.txt) has what swash, ttf-parser and skrifa
-return for glyphs 1 and 2, and the colour each build drew in the middle of the triangle and of
-its path. [`images/cbdt-gap.ttf`](images/cbdt-gap.ttf) is the font, for checking with other
+return for glyphs 1 and 2, and the colour drawn in the middle of glyph 1's triangle in every row. [`images/cbdt-gap.ttf`](images/cbdt-gap.ttf) is the font, for checking with other
 tools.
 
 ## The text frame benchmark

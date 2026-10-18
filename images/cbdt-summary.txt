@@ -1,19 +1,14 @@
-cbdt-default:
+cbdt-swash row:
 glyph 1, swash 0.2.10 scale_color_bitmap: a 24 x 24 image, rgba[255, 0, 64, 255] in the middle
-glyph 1, ttf-parser 0.25.1 glyph_raster_image: a 24 x 24 PNG image, the bytes of glyph 2's PNG
+glyph 1, ttf-parser 0.25.1 glyph_raster_image: a 24 x 24 image, rgba[255, 0, 64, 255] in the middle
 glyph 1, skrifa 0.44.0 glyph_for_size: none
 glyph 2, swash 0.2.10 scale_color_bitmap: a 24 x 24 image, rgba[255, 0, 64, 255] in the middle
-glyph 2, ttf-parser 0.25.1 glyph_raster_image: a 24 x 24 PNG image, the bytes of glyph 2's PNG
-glyph 2, skrifa 0.44.0 glyph_for_size: a 24 x 24 image
-glyph 1, fill_glyph_run: rgba[255, 0, 64, 255] at (61, 73)
-glyph 1's outline, fill_path: rgba[0, 0, 0, 255] at (281, 73)
-cbdt-swash:
-glyph 1, swash 0.2.10 scale_color_bitmap: a 24 x 24 image, rgba[255, 0, 64, 255] in the middle
-glyph 1, ttf-parser 0.25.1 glyph_raster_image: a 24 x 24 PNG image, the bytes of glyph 2's PNG
-glyph 1, skrifa 0.44.0 glyph_for_size: none
-glyph 2, swash 0.2.10 scale_color_bitmap: a 24 x 24 image, rgba[255, 0, 64, 255] in the middle
-glyph 2, ttf-parser 0.25.1 glyph_raster_image: a 24 x 24 PNG image, the bytes of glyph 2's PNG
-glyph 2, skrifa 0.44.0 glyph_for_size: a 24 x 24 image
-glyph 1, fill_glyph_run: rgba[255, 0, 64, 255] at (61, 73)
-glyph 1's outline, fill_path: rgba[0, 0, 0, 255] at (281, 73)
-cbdt-default.png and cbdt-swash.png: 1024 of 43200 pixels differ, by at most 255/255 in one channel
+glyph 2, ttf-parser 0.25.1 glyph_raster_image: a 24 x 24 image, rgba[255, 0, 64, 255] in the middle
+glyph 2, skrifa 0.44.0 glyph_for_size: a 24 x 24 image, rgba[255, 0, 64, 255] in the middle
+glyph 1, fill_glyph_run: rgba[255, 0, 64, 255] in the middle of the triangle
+cbdt-default figure:
+skrifa 0.44.0, glyph 1: rgba[0, 0, 0, 255] in the middle of the triangle
+swash 0.2.10, glyph 1: rgba[255, 0, 64, 255] in the middle of the triangle
+ttf-parser 0.25.1, glyph 1: rgba[255, 0, 64, 255] in the middle of the triangle
+femtovg, default features, glyph 1: rgba[255, 0, 64, 255] in the middle of the triangle
+femtovg, swash only, glyph 1: rgba[255, 0, 64, 255] in the middle of the triangle

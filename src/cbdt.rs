@@ -1,44 +1,57 @@
-//! A glyph that a color bitmap font has no bitmap for, drawn with femtovg on
-//! `renderer::WGPURenderer` and saved as a PNG.
+//! A glyph that a color bitmap font has no bitmap for, as three font libraries and two builds of
+//! femtovg see it, drawn with femtovg on `renderer::WGPURenderer` and saved as PNGs.
 //!
-//! usage: cbdt-<build> <out.png> <out.ttf>
+//! usage: cbdt-<build> row <out.png> <out.ttf>
+//!        cbdt-default figure <font.ttf> <swash row.png> <out.png>
 //!
-//! The font is built here and also written to `<out.ttf>`. It has three glyphs. Glyph 0 is empty.
-//! Glyph 1 has a triangle in `glyf` and no bitmap. Glyph 2 has a red PNG in `CBDT` and no outline.
-//! `CBLC` covers glyphs 1 and 2 with one index subtable of format 1. Format 1 lists one offset per
-//! glyph, and one more after the last, and a glyph's bitmap is the bytes from its offset to the
-//! next one. Glyph 1's two offsets are equal, which is how the OpenType specification marks a
-//! glyph in the range that has no bitmap.
+//! The font is built here, and `row` also writes it to `<out.ttf>`. It has three glyphs. Glyph 0 is
+//! empty. Glyph 1 has a triangle in `glyf` and no bitmap. Glyph 2 has a red PNG in `CBDT` and no
+//! outline. `CBLC` covers glyphs 1 and 2 with one index subtable of format 1. Format 1 lists one
+//! offset per glyph, and one more after the last, and a glyph's bitmap is the bytes from its offset
+//! to the next one. Glyph 1's two offsets are equal, which is how the OpenType specification marks
+//! a glyph in the range that has no bitmap. So the correct drawing of glyph 1 is its outline, a
+//! black triangle, and of glyph 2 its bitmap, a red square.
 //!
 //! swash 0.2.10 (`src/strike.rs:601-625`) and ttf-parser 0.25.1 (`src/tables/cblc.rs:227-243`)
 //! read only the glyph's own offset. For glyph 1 they find the record that starts there, which is
-//! glyph 2's, so femtovg draws a red square where the triangle belongs. skrifa 0.44.0 reads both
-//! offsets and finds no bitmap.
+//! glyph 2's. skrifa 0.44.0 reads both offsets and finds no bitmap.
 //!
-//! The scene draws glyphs 1 and 2 with `fill_glyph_run` and then glyph 1's outline with
-//! `fill_path`, to the right. The first and the third should look the same. The program prints
-//! what each library returns for glyphs 1 and 2, and the colour femtovg drew in the middle of the
-//! first and the third.
+//! `row` draws glyphs 1 and 2 with `fill_glyph_run` and prints what each library returns for them
+//! and the colour drawn in the middle of glyph 1. The swash-only build draws only this, because it
+//! has no `fill_text` for labels. `figure`, in the default build, draws the labelled picture: what
+//! each library gives for the two glyphs (the bitmap it returns, or the outline when it returns
+//! none), then what femtovg draws with its default features and, from `<swash row.png>`, with
+//! `swash` alone.
 
 mod offscreen;
 
-use femtovg::{Color, Paint, Path, PositionedGlyph};
+#[cfg(feature = "figure")]
+use femtovg::Path;
+use femtovg::{Color, Paint, PositionedGlyph};
 use skrifa::MetadataProvider;
 
 /// Pixels per em of the font's only strike. Its PNG is this many pixels square.
 const PPEM: u8 = 24;
-/// The font size of the scene. It is below 92 px, so femtovg draws the glyphs from its atlas.
+/// The font size of the glyphs. It is below 92 px, so femtovg draws them from its atlas.
 const FONT_SIZE: f32 = 64.0;
 const UNITS_PER_EM: u16 = 1024;
 /// Glyph 1's triangle in font units, on the baseline.
 const TRIANGLE: [(i16, i16); 3] = [(100, 0), (900, 0), (500, 800)];
-/// The canvas, the baseline and the x of each of the three drawings.
-const WIDTH: u32 = 360;
-const HEIGHT: u32 = 120;
-const BASELINE: f32 = 90.0;
-const GLYPH_1_X: f32 = 30.0;
-const GLYPH_2_X: f32 = 140.0;
-const PATH_X: f32 = 250.0;
+/// A row: the two glyphs, each in a column of its own, on one baseline.
+const COLUMN_WIDTH: f32 = 110.0;
+const ROW_WIDTH: u32 = 240;
+const ROW_HEIGHT: u32 = 90;
+const BASELINE: f32 = 76.0;
+const GLYPH_X: [f32; 2] = [20.0, 20.0 + COLUMN_WIDTH];
+/// The figure: a header, then one row per library and per build, each with its label on the left.
+#[cfg(feature = "figure")]
+const LABEL_WIDTH: u32 = 290;
+#[cfg(feature = "figure")]
+const HEADER_HEIGHT: u32 = 74;
+#[cfg(feature = "figure")]
+const FIGURE_WIDTH: u32 = LABEL_WIDTH + ROW_WIDTH;
+#[cfg(feature = "figure")]
+const FIGURE_HEIGHT: u32 = HEADER_HEIGHT + 5 * ROW_HEIGHT;
 
 fn push_u8(data: &mut Vec<u8>, value: u8) {
     data.push(value);
@@ -218,104 +231,238 @@ fn font() -> Vec<u8> {
     ])
 }
 
+/// What a library returns for a glyph's color bitmap: the pixels, or why there are none.
+struct Lookup {
+    /// `figure` draws it.
+    #[cfg_attr(not(feature = "figure"), allow(dead_code))]
+    bitmap: Option<image::RgbaImage>,
+    /// One line for the summary.
+    text: String,
+}
+
+fn image_line(image: &image::RgbaImage) -> String {
+    let (width, height) = image.dimensions();
+    let middle = image.get_pixel(width / 2, height / 2).0;
+    format!("a {width} x {height} image, rgba{middle:?} in the middle")
+}
+
+fn lookup(bitmap: Option<image::RgbaImage>, what: &str) -> Lookup {
+    let text = bitmap.as_ref().map_or("none".to_string(), image_line);
+    Lookup {
+        bitmap,
+        text: format!("{what}: {text}"),
+    }
+}
+
 /// What swash 0.2.10 gives for `glyph` when asked for a color bitmap at the strike's own size.
-fn swash_lookup(font: &[u8], glyph: u16) -> String {
+fn swash_lookup(font: &[u8], glyph: u16) -> Lookup {
     let font = swash::FontRef::from_index(font, 0).unwrap();
     let mut context = swash::scale::ScaleContext::new();
     let mut scaler = context.builder(font).build();
-    match scaler.scale_color_bitmap(glyph, swash::scale::StrikeWith::LargestSize) {
-        Some(image) => {
-            let (width, height) = (image.placement.width as usize, image.placement.height as usize);
-            let centre = 4 * (height / 2 * width + width / 2);
-            let rgba = &image.data[centre..centre + 4];
-            format!("a {width} x {height} image, rgba{rgba:?} in the middle")
-        }
-        None => "none".to_string(),
-    }
+    let bitmap = scaler
+        .scale_color_bitmap(glyph, swash::scale::StrikeWith::LargestSize)
+        .map(|image| image::RgbaImage::from_raw(image.placement.width, image.placement.height, image.data).unwrap());
+    lookup(bitmap, "swash 0.2.10 scale_color_bitmap")
 }
 
-/// What ttf-parser 0.25.1 gives for `glyph`, and whether its data is glyph 2's PNG.
-fn ttf_parser_lookup(font: &[u8], glyph: u16) -> String {
+/// What ttf-parser 0.25.1 gives for `glyph`, decoded.
+fn ttf_parser_lookup(font: &[u8], glyph: u16) -> Lookup {
     let face = ttf_parser::Face::parse(font, 0).unwrap();
-    let image = |glyph| face.glyph_raster_image(ttf_parser::GlyphId(glyph), u16::MAX);
-    match image(glyph) {
-        Some(found) => {
-            let same = image(2).is_some_and(|glyph_2| glyph_2.data == found.data);
-            let whose = if same { "glyph 2's PNG" } else { "another PNG" };
-            format!("a {} x {} {:?} image, the bytes of {whose}", found.width, found.height, found.format)
-        }
-        None => "none".to_string(),
-    }
+    let bitmap = face
+        .glyph_raster_image(ttf_parser::GlyphId(glyph), u16::MAX)
+        .map(|found| image::load_from_memory(found.data).unwrap().to_rgba8());
+    lookup(bitmap, "ttf-parser 0.25.1 glyph_raster_image")
 }
 
-/// What skrifa 0.44.0 gives for `glyph` at the strike's size.
-fn skrifa_lookup(font: &[u8], glyph: u32) -> String {
+/// What skrifa 0.44.0 gives for `glyph` at the strike's size, decoded.
+fn skrifa_lookup(font: &[u8], glyph: u16) -> Lookup {
     let font = skrifa::FontRef::new(font).unwrap();
     let size = skrifa::instance::Size::new(PPEM.into());
-    match font.bitmap_strikes().glyph_for_size(size, skrifa::GlyphId::new(glyph)) {
-        Some(found) => format!("a {} x {} image", found.width, found.height),
-        None => "none".to_string(),
-    }
+    let bitmap = font
+        .bitmap_strikes()
+        .glyph_for_size(size, skrifa::GlyphId::new(glyph.into()))
+        .map(|found| match found.data {
+            skrifa::bitmap::BitmapData::Png(png) => image::load_from_memory(png).unwrap().to_rgba8(),
+            _ => panic!("glyph {glyph}'s bitmap is not a PNG"),
+        });
+    lookup(bitmap, "skrifa 0.44.0 glyph_for_size")
 }
 
-fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let [_, out_png, out_ttf] = args.as_slice() else {
-        eprintln!("usage: {} <out.png> <out.ttf>", args[0]);
-        std::process::exit(2);
-    };
+/// Glyph 1's outline at FONT_SIZE, with its origin at (`x`, `baseline`). Font units point up and
+/// canvas pixels point down.
+#[cfg(feature = "figure")]
+fn triangle(x: f32, baseline: f32) -> Path {
+    let scale = FONT_SIZE / f32::from(UNITS_PER_EM);
+    let point = |(px, py): (i16, i16)| (x + f32::from(px) * scale, baseline - f32::from(py) * scale);
+    let mut path = Path::new();
+    let (first_x, first_y) = point(TRIANGLE[0]);
+    path.move_to(first_x, first_y);
+    for corner in &TRIANGLE[1..] {
+        let (corner_x, corner_y) = point(*corner);
+        path.line_to(corner_x, corner_y);
+    }
+    path.close();
+    path
+}
+
+/// The middle of glyph 1's triangle, in a row whose glyph 1 has its origin at (`x`, `baseline`).
+fn middle_of_glyph_1(x: f32, baseline: f32) -> (u32, u32) {
+    let scale = FONT_SIZE / f32::from(UNITS_PER_EM);
+    let (sum_x, sum_y) = TRIANGLE.iter().fold((0.0, 0.0), |(sum_x, sum_y), (px, py)| {
+        (sum_x + f32::from(*px), sum_y + f32::from(*py))
+    });
+    ((x + sum_x / 3.0 * scale) as u32, (baseline - sum_y / 3.0 * scale) as u32)
+}
+
+/// Draws glyphs 1 and 2 with `fill_glyph_run`, in a row whose top left is (`left`, `top`).
+fn draw_glyphs<T: femtovg::Renderer>(canvas: &mut femtovg::Canvas<T>, font: femtovg::FontId, left: f32, top: f32) {
+    let paint = Paint::color(Color::black()).with_font_size(FONT_SIZE);
+    let glyphs = [1, 2].map(|glyph_id| PositionedGlyph {
+        x: left + GLYPH_X[usize::from(glyph_id) - 1],
+        y: top + BASELINE,
+        glyph_id,
+    });
+    canvas.fill_glyph_run(font, &[], glyphs, &paint).expect("fill_glyph_run failed");
+}
+
+fn row(out_png: &str, out_ttf: &str) {
     let font = font();
     std::fs::write(out_ttf, &font).unwrap_or_else(|error| panic!("cannot write {out_ttf}: {error}"));
-
     for glyph in [1, 2] {
-        println!("glyph {glyph}, swash 0.2.10 scale_color_bitmap: {}", swash_lookup(&font, glyph));
-        println!("glyph {glyph}, ttf-parser 0.25.1 glyph_raster_image: {}", ttf_parser_lookup(&font, glyph));
-        println!("glyph {glyph}, skrifa 0.44.0 glyph_for_size: {}", skrifa_lookup(&font, glyph.into()));
+        for found in [swash_lookup(&font, glyph), ttf_parser_lookup(&font, glyph), skrifa_lookup(&font, glyph)] {
+            println!("glyph {glyph}, {}", found.text);
+        }
     }
 
     let gpu = offscreen::Gpu::new();
-    eprintln!("{}: drawing on {}", args[0], gpu.adapter_name);
+    eprintln!("drawing on {}", gpu.adapter_name);
     let text_context = femtovg::TextContext::default();
     let font_id = text_context.add_font_mem(&font).expect("femtovg cannot read the font");
-    let mut canvas = gpu.canvas(text_context, WIDTH, HEIGHT);
-    canvas.clear_rect(0, 0, WIDTH, HEIGHT, Color::white());
+    let mut canvas = gpu.canvas(text_context, ROW_WIDTH, ROW_HEIGHT);
+    canvas.clear_rect(0, 0, ROW_WIDTH, ROW_HEIGHT, Color::white());
+    draw_glyphs(&mut canvas, font_id, 0.0, 0.0);
+    let frame = gpu.read_frame(&mut canvas, ROW_WIDTH, ROW_HEIGHT);
+    let (x, y) = middle_of_glyph_1(GLYPH_X[0], BASELINE);
+    println!("glyph 1, fill_glyph_run: rgba{:?} in the middle of the triangle", frame.get_pixel(x, y).0);
+    frame
+        .save(out_png)
+        .unwrap_or_else(|error| panic!("cannot write {out_png}: {error}"));
+}
 
-    let paint = Paint::color(Color::black()).with_font_size(FONT_SIZE);
-    let glyphs = [(1, GLYPH_1_X), (2, GLYPH_2_X)].map(|(glyph_id, x)| PositionedGlyph {
-        x,
-        y: BASELINE,
-        glyph_id,
-    });
-    canvas.fill_glyph_run(font_id, &[], glyphs, &paint).expect("fill_glyph_run failed");
+#[cfg(feature = "figure")]
+fn figure(label_font: &str, swash_row: &str, out_png: &str) {
+    use femtovg::{ImageFlags, ImageSource};
 
-    // Glyph 1's outline at FONT_SIZE. Font units point up and canvas pixels point down.
-    let scale = FONT_SIZE / f32::from(UNITS_PER_EM);
-    let point = |(x, y): (i16, i16)| (PATH_X + f32::from(x) * scale, BASELINE - f32::from(y) * scale);
-    let mut path = Path::new();
-    let (x, y) = point(TRIANGLE[0]);
-    path.move_to(x, y);
-    for corner in &TRIANGLE[1..] {
-        let (x, y) = point(*corner);
-        path.line_to(x, y);
-    }
-    path.close();
-    canvas.fill_path(&path, &paint);
+    let font = font();
+    let gpu = offscreen::Gpu::new();
+    eprintln!("drawing on {}", gpu.adapter_name);
+    let text_context = femtovg::TextContext::default();
+    let font_id = text_context.add_font_mem(&font).expect("femtovg cannot read the font");
+    let label_font = text_context
+        .add_font_file(label_font)
+        .unwrap_or_else(|error| panic!("cannot read {label_font}: {error:?}"));
+    let mut canvas = gpu.canvas(text_context, FIGURE_WIDTH, FIGURE_HEIGHT);
+    canvas.clear_rect(0, 0, FIGURE_WIDTH, FIGURE_HEIGHT, Color::white());
 
-    let frame = gpu.read_frame(&mut canvas, WIDTH, HEIGHT);
-    // The middle of the triangle, where its three corners average out.
-    let middle = |left: f32| {
-        let (x, y) = TRIANGLE.iter().fold((0.0, 0.0), |(x, y), corner| {
-            let (px, py) = point(*corner);
-            (x + px - PATH_X + left, y + py)
-        });
-        (x / 3.0, y / 3.0)
+    let text = |canvas: &mut femtovg::Canvas<_>, x: f32, y: f32, line: &str, size: f32, color: Color| {
+        let paint = Paint::color(color).with_font(&[label_font]).with_font_size(size);
+        canvas.fill_text(x, y, line, &paint).expect("fill_text failed");
     };
-    for (what, left) in [("glyph 1, fill_glyph_run", GLYPH_1_X), ("glyph 1's outline, fill_path", PATH_X)] {
-        let (x, y) = middle(left);
-        let pixel = frame.get_pixel(x as u32, y as u32).0;
-        println!("{what}: rgba{pixel:?} at ({}, {})", x as u32, y as u32);
+    let black = Color::rgb(20, 20, 20);
+    let grey = Color::rgb(110, 110, 110);
+    let left = LABEL_WIDTH as f32;
+    text(&mut canvas, 16.0, 26.0, "Correct: glyph 1 is a black triangle,", 15.0, black);
+    text(&mut canvas, 16.0, 46.0, "glyph 2 is a red square.", 15.0, black);
+    for (column, (title, detail)) in [("glyph 1", "outline, no bitmap"), ("glyph 2", "bitmap, no outline")]
+        .into_iter()
+        .enumerate()
+    {
+        let x = left + GLYPH_X[column];
+        text(&mut canvas, x, 26.0, title, 15.0, black);
+        text(&mut canvas, x, 46.0, detail, 12.0, grey);
+    }
+
+    // A library's row draws the bitmap it returns for a glyph, scaled to FONT_SIZE as femtovg
+    // places a bitmap glyph, or the glyph's outline when it returns none.
+    let libraries: [(&str, &str, fn(&[u8], u16) -> Lookup); 3] = [
+        ("skrifa 0.44.0", "no bitmap for glyph 1: correct", skrifa_lookup),
+        ("swash 0.2.10", "glyph 2's bitmap for glyph 1: wrong", swash_lookup),
+        ("ttf-parser 0.25.1", "glyph 2's PNG for glyph 1: wrong", ttf_parser_lookup),
+    ];
+    let mut summary = Vec::new();
+    for (index, (name, verdict, look_up)) in libraries.into_iter().enumerate() {
+        let top = (HEADER_HEIGHT + index as u32 * ROW_HEIGHT) as f32;
+        text(&mut canvas, 16.0, top + 40.0, name, 15.0, black);
+        text(&mut canvas, 16.0, top + 60.0, verdict, 12.0, grey);
+        for glyph in [1, 2] {
+            let x = left + GLYPH_X[usize::from(glyph) - 1];
+            match look_up(&font, glyph).bitmap {
+                Some(bitmap) => {
+                    let pixels = image::DynamicImage::ImageRgba8(bitmap);
+                    let image = canvas
+                        .create_image(ImageSource::try_from(&pixels).unwrap(), ImageFlags::empty())
+                        .unwrap();
+                    let (bitmap_top, size) = (top + BASELINE - FONT_SIZE, FONT_SIZE);
+                    let mut square = Path::new();
+                    square.rect(x, bitmap_top, size, size);
+                    canvas.fill_path(&square, &Paint::image(image, x, bitmap_top, size, size, 0.0, 1.0));
+                }
+                None => canvas.fill_path(&triangle(x, top + BASELINE), &Paint::color(Color::black())),
+            }
+        }
+        summary.push((name.to_string(), top));
+    }
+
+    // femtovg with its default features draws here. The swash-only build drew its row in its own
+    // run, and the row is copied in pixel for pixel.
+    let default_top = (HEADER_HEIGHT + 3 * ROW_HEIGHT) as f32;
+    text(&mut canvas, 16.0, default_top + 40.0, "femtovg master, default features", 15.0, black);
+    text(&mut canvas, 16.0, default_top + 60.0, "uses ttf-parser: wrong", 12.0, grey);
+    draw_glyphs(&mut canvas, font_id, left, default_top);
+    summary.push(("femtovg, default features".to_string(), default_top));
+
+    let swash_top = (HEADER_HEIGHT + 4 * ROW_HEIGHT) as f32;
+    text(&mut canvas, 16.0, swash_top + 40.0, "femtovg master, swash only", 15.0, black);
+    text(&mut canvas, 16.0, swash_top + 60.0, "uses swash: wrong", 12.0, grey);
+    let row = image::open(swash_row).unwrap_or_else(|error| panic!("cannot read {swash_row}: {error}"));
+    let row_image = canvas
+        .create_image(ImageSource::try_from(&row).unwrap(), ImageFlags::NEAREST)
+        .unwrap();
+    let mut rect = Path::new();
+    rect.rect(left, swash_top, ROW_WIDTH as f32, ROW_HEIGHT as f32);
+    canvas.fill_path(
+        &rect,
+        &Paint::image(row_image, left, swash_top, ROW_WIDTH as f32, ROW_HEIGHT as f32, 0.0, 1.0),
+    );
+    summary.push(("femtovg, swash only".to_string(), swash_top));
+
+    // A thin rule above every row.
+    for index in 0..5 {
+        let mut rule = Path::new();
+        rule.rect(0.0, (HEADER_HEIGHT + index * ROW_HEIGHT) as f32, FIGURE_WIDTH as f32, 1.0);
+        canvas.fill_path(&rule, &Paint::color(Color::rgb(210, 210, 210)));
+    }
+
+    let frame = gpu.read_frame(&mut canvas, FIGURE_WIDTH, FIGURE_HEIGHT);
+    for (name, top) in summary {
+        let (x, y) = middle_of_glyph_1(left + GLYPH_X[0], top + BASELINE);
+        println!("{name}, glyph 1: rgba{:?} in the middle of the triangle", frame.get_pixel(x, y).0);
     }
     frame
         .save(out_png)
         .unwrap_or_else(|error| panic!("cannot write {out_png}: {error}"));
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
+        [_, "row", out_png, out_ttf] => row(out_png, out_ttf),
+        #[cfg(feature = "figure")]
+        [_, "figure", label_font, swash_row, out_png] => figure(label_font, swash_row, out_png),
+        _ => {
+            eprintln!("usage: {} row <out.png> <out.ttf>", args[0]);
+            eprintln!("       {} figure <font.ttf> <swash row.png> <out.png>  (default build only)", args[0]);
+            std::process::exit(2);
+        }
+    }
 }

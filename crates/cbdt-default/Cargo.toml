@@ -14,6 +14,11 @@ publish = false
 name = "cbdt-default"
 path = "../../src/cbdt.rs"
 
+# `figure` labels its picture with `fill_text`, which needs femtovg's `textlayout`.
+[features]
+default = ["figure"]
+figure = []
+
 [dependencies]
 femtovg = { path = "../../femtovg/cbdt-master", features = ["wgpu"] }
 wgpu = "30.0.0"

@@ -237,16 +237,15 @@ cutoff joins stack 520 290 stacked
 cutoff caps stack 520 290 stacked
 cutoff star side 320 320 side-by-side
 
-# The CBDT scene is drawn on one revision, by both builds. Each writes the font it builds, and
-# prints what swash, ttf-parser and skrifa return for the glyph without a bitmap and the colours
-# femtovg drew.
-cbdt_rev=$(git -C femtovg/cbdt-master rev-parse --short=7 HEAD)
-for build in default swash; do
-    echo "cbdt-$build:"
-    "$bin/cbdt-$build" "out/cbdt-$build.png" out/cbdt-gap.ttf
-done >out/cbdt-summary.txt
-echo "cbdt-default.png and cbdt-swash.png: $("$bin/compare" out/cbdt-default.png out/cbdt-swash.png)" >>out/cbdt-summary.txt
-"$bin/compose" stack "$roboto" out/cbdt-default.png "default features, master ($cbdt_rev)" out/cbdt-swash.png "swash only, master ($cbdt_rev)" 0 0 360 120 out/cbdt-stacked.png
+# The CBDT scene is drawn on one revision. The swash-only build draws its row of the figure and
+# writes the font, and the default build draws the figure with that row copied in. Both print
+# what swash, ttf-parser and skrifa return and the colour drawn in the middle of glyph 1.
+{
+    echo "cbdt-swash row:"
+    "$bin/cbdt-swash" row out/cbdt-swash-row.png out/cbdt-gap.ttf
+    echo "cbdt-default figure:"
+    "$bin/cbdt-default" figure "$roboto" out/cbdt-swash-row.png out/cbdt-figure.png
+} >out/cbdt-summary.txt
 
 # The path-cache scenes print nothing, so their summaries have only the pixel comparison.
 for scene in trace bars; do
@@ -337,7 +336,7 @@ for scene in joins caps star; do
         check "$file"
     done
 done
-for file in cbdt-default.png cbdt-swash.png cbdt-stacked.png cbdt-summary.txt cbdt-gap.ttf; do
+for file in cbdt-swash-row.png cbdt-figure.png cbdt-summary.txt cbdt-gap.ttf; do
     check "$file"
 done
 [ "$scenes" = "about menu" ] || echo "  the menu images were not made (see above)"
