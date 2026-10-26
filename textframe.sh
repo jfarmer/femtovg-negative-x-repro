@@ -2,7 +2,8 @@
 # Measures the cost of drawing a Slint-like frame of text (src/textframe.rs) on two femtovg
 # revisions, in two scenes (200 labels, and a large table that scrolls every frame) and on three
 # renderers (none, OpenGL and WGPU), and checks that both revisions draw the same pixels. The labels
-# are also measured stroked, and rotated so that femtovg draws them as outlines.
+# are also measured stroked, and rotated so that femtovg draws them as outlines, and both plain and
+# rotated under a canvas shadow.
 #
 # usage: ./textframe.sh
 #
@@ -70,12 +71,17 @@ for side in master fixed; do
 done
 
 # The environment of the binary for each way of drawing the text: fill, stroke, or fill rotated by
-# 0.05 radians, which draw_glyph_run draws as outlines.
+# 0.05 radians, which draw_glyph_run draws as outlines. The shadow variants are the fill and the
+# rotated fill under a canvas shadow. The rotated one draws 20 labels: femtovg/femtovg 666cf62 casts a
+# shadow for each glyph of a rotated glyph run, and at 200 labels its WGPU renderer panics in its
+# staging belt.
 variant_env() {
     case $1 in
         fill) echo "" ;;
         stroke) echo STROKE=1 ;;
         outlines) echo ROTATE=0.05 ;;
+        shadow) echo SHADOW=1 ;;
+        shadow-outlines) echo SHADOW=1 ROTATE=0.05 LABELS=20 ;;
         *) die "unknown variant $1" ;;
     esac
 }
@@ -122,14 +128,19 @@ for row in "labels swash glyph_run void fill" "labels default fill_text void fil
     "labels swash glyph_run void stroke" "labels default fill_text void stroke" "labels swash glyph_run gl stroke" \
     "labels swash glyph_run wgpu stroke" "labels swash glyph_run void outlines" \
     "labels default fill_text void outlines" "labels swash glyph_run gl outlines" \
-    "labels swash glyph_run wgpu outlines"; do
+    "labels swash glyph_run wgpu outlines" "labels swash glyph_run void shadow" \
+    "labels default fill_text void shadow" "labels swash glyph_run gl shadow" \
+    "labels swash glyph_run wgpu shadow" "labels swash glyph_run void shadow-outlines" \
+    "labels default fill_text void shadow-outlines" "labels swash glyph_run gl shadow-outlines" \
+    "labels swash glyph_run wgpu shadow-outlines"; do
     set -- $row
-    echo "  $1, $3, $2 build, $4 renderer, $5"
+    echo "  $1, $3, $2 build, $4 renderer, $5 ($(variant_env "$5"))"
     compare "$1" "$2" "$3" "$4" "$5"
 done
 echo "Load after: $(uptime | sed 's/.*load averages*: //')"
 
-# The same frames drawn by both revisions, hashed after the last frame.
+# The same frames drawn by both revisions, hashed after the last frame. The shadow variants are left
+# out, because a change to how text casts its shadow changes those pixels on purpose.
 echo
 echo "Pixel hashes:"
 emoji=/System/Library/Fonts/Apple\ Color\ Emoji.ttc
@@ -158,3 +169,25 @@ for row in "swash glyph_run" "default fill_text"; do
     done
 done
 [ "$differ" = 0 ] || die "the two revisions drew different pixels"
+
+# Under a shadow, fill_text must draw the same pixels on both revisions, and the change's glyph runs
+# must draw a shadow: different pixels from the same frame drawn without one.
+echo
+echo "Shadow pixel hashes:"
+hash() {
+    env PIXEL_HASH=1 FONT=fonts/Roboto-Regular.ttf $1 "$out/$2" "$3" 3 "$4" labels | grep -o 'hash=[0-9a-f]*'
+}
+for renderer in gl wgpu; do
+    for variant in shadow shadow-outlines; do
+        vars=$(variant_env $variant)
+        a=$(hash "$vars" master-default fill_text $renderer)
+        b=$(hash "$vars" fixed-default fill_text $renderer)
+        [ "$a" = "$b" ] || differ=1
+        echo "  fill_text, $renderer, $variant: master $a, fixed $b"
+        plain=$(hash "$(echo "$vars" | sed 's/SHADOW=1//')" fixed-swash glyph_run $renderer)
+        shadowed=$(hash "$vars" fixed-swash glyph_run $renderer)
+        [ "$plain" != "$shadowed" ] || differ=1
+        echo "  glyph_run, fixed, $renderer, $variant: without the shadow $plain, with it $shadowed"
+    done
+done
+[ "$differ" = 0 ] || die "fill_text drew a different shadow, or a glyph run drew none"

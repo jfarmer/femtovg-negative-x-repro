@@ -25,6 +25,7 @@
 //! PNG images, each label then mixes outline and PNG glyphs in one run), STROKE=1 (stroke_glyph_run or stroke_text,
 //! with the default 1 px line width, instead of the fill calls), ROTATE=<radians> (rotate each label and table cell
 //! by that angle after its translate, so that draw_glyph_run draws it as outlines rather than from the atlas),
+//! SHADOW=1 (draw every frame under a canvas shadow: black at half alpha, offset by 2 px and blurred by 4),
 //! PIXEL_HASH=1 (gl and wgpu: print a hash of the frame after the last one), SCREENSHOT=<file.ppm> (gl and wgpu:
 //! save that frame as a binary PPM).
 //!
@@ -249,6 +250,7 @@ struct Bench {
     exact_size_hint: bool,
     stroke: bool,
     rotate: f32,
+    shadow: bool,
     one_run: Vec<PositionedGlyph>,
     paints: Vec<Paint>,
     frame: Cell<usize>,
@@ -294,6 +296,7 @@ impl Bench {
             exact_size_hint: std::env::var("EXACT_SIZE_HINT").is_ok_and(|v| v == "1"),
             stroke: std::env::var("STROKE").is_ok_and(|v| v == "1"),
             rotate: std::env::var("ROTATE").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0),
+            shadow: std::env::var("SHADOW").is_ok_and(|v| v == "1"),
             one_run,
             paints,
             frame: Cell::new(0),
@@ -347,6 +350,11 @@ impl Bench {
 
     fn draw<T: Renderer>(&self, canvas: &mut Canvas<T>) {
         canvas.clear_rect(0, 0, W, H, Color::white());
+        if self.shadow {
+            canvas.set_shadow_color(Color::rgba(0, 0, 0, 128));
+            canvas.set_shadow_offset(2.0, 2.0);
+            canvas.set_shadow_blur(4.0);
+        }
         match self.scene {
             Scene::Labels => self.draw_labels(canvas),
             Scene::Table => self.draw_table(canvas),
