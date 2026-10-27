@@ -1,0 +1,1 @@
+emojiscale-master.png and emojiscale-fixed.png: 38293 of 403200 pixels differ, by at most 242/255 in one channel

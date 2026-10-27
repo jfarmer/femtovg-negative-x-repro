@@ -1,0 +1,20 @@
+# The half-pixel scene built against the femtovg checkout in femtovg/halfpixel-fixed, which run.sh
+# makes, with `swash` and `textlayout` and without `image-loading`. Slint builds femtovg with
+# `swash`, and the scene uses `fill_text`, which is part of `textlayout`.
+[package]
+name = "repro-halfpixel-fixed"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "halfpixel-fixed"
+path = "../../src/halfpixel.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/halfpixel-fixed", default-features = false, features = ["swash", "textlayout", "wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }

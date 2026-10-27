@@ -1,5 +1,5 @@
 #!/bin/sh
-# Draws nine scenes on two femtovg revisions each and five more on one revision each, composes
+# Draws eleven scenes on two femtovg revisions each and five more on one revision each, composes
 # the comparison images, and compares the result with the files in images/.
 #
 # usage: ./run.sh
@@ -41,6 +41,17 @@
 # by two builds: with femtovg's default features, and with only `swash`, as Slint builds femtovg.
 #   CBDT_FEMTOVG_URL  where that revision is fetched from (https://github.com/femtovg/femtovg)
 #   CBDT_MASTER_REV   that revision (upstream master when the scene was written)
+# The half-pixel scene is for a ninth bug and has its own pair of revisions.
+#   HALFPIXEL_FEMTOVG_URL  where the revision with the bug is fetched from (https://github.com/femtovg/femtovg)
+#   HALFPIXEL_MASTER_REV   that revision (upstream master when the scene was written)
+#   HALFPIXEL_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
+#   HALFPIXEL_FIXED_REV    that revision (the commit of the fix)
+# The blocky-emoji scene is for a tenth bug and has its own pair of revisions.
+#   EMOJISCALE_FEMTOVG_URL  where the revision with the bug is fetched from (https://github.com/femtovg/femtovg)
+#   EMOJISCALE_MASTER_REV   that revision (upstream master when the scene was written)
+#   EMOJISCALE_FIXED_URL    where the revision with the fix is fetched from (https://github.com/jfarmer/femtovg)
+#   EMOJISCALE_FIXED_REV    that revision (the commit of the fix)
+#   EMOJI_FONT              Apple Color Emoji (/System/Library/Fonts/Apple Color Emoji.ttc)
 # A URL may be the path of a local clone, and then nothing is downloaded from it. A revision is
 # a full commit hash, or the name of a branch or tag.
 #
@@ -75,6 +86,15 @@ SHAPING_FIXED_URL=${SHAPING_FIXED_URL:-https://github.com/jfarmer/femtovg}
 SHAPING_FIXED_REV=${SHAPING_FIXED_REV:-1668ea0f84f8d08f6034f842d80db7c92adbb27f}
 CBDT_FEMTOVG_URL=${CBDT_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
 CBDT_MASTER_REV=${CBDT_MASTER_REV:-9f5ad2614e922677a467e2d6f66fecba14d3a30a}
+HALFPIXEL_FEMTOVG_URL=${HALFPIXEL_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+HALFPIXEL_MASTER_REV=${HALFPIXEL_MASTER_REV:-19839d3d781d68f23ce81f5e1e1c02235c3a82bd}
+HALFPIXEL_FIXED_URL=${HALFPIXEL_FIXED_URL:-https://github.com/jfarmer/femtovg}
+HALFPIXEL_FIXED_REV=${HALFPIXEL_FIXED_REV:-2a5e57d423d633540a361ab6b3050b82499cd1c9}
+EMOJISCALE_FEMTOVG_URL=${EMOJISCALE_FEMTOVG_URL:-https://github.com/femtovg/femtovg}
+EMOJISCALE_MASTER_REV=${EMOJISCALE_MASTER_REV:-19839d3d781d68f23ce81f5e1e1c02235c3a82bd}
+EMOJISCALE_FIXED_URL=${EMOJISCALE_FIXED_URL:-https://github.com/jfarmer/femtovg}
+EMOJISCALE_FIXED_REV=${EMOJISCALE_FIXED_REV:-ad045b0c8715ea68ada901df51103a3aa9642bab}
+EMOJI_FONT=${EMOJI_FONT:-/System/Library/Fonts/Apple Color Emoji.ttc}
 
 die() {
     echo "run.sh: $*" >&2
@@ -98,6 +118,10 @@ PATHCACHE_FIXED_URL=$(absolute "$PATHCACHE_FIXED_URL")
 SHAPING_FEMTOVG_URL=$(absolute "$SHAPING_FEMTOVG_URL")
 SHAPING_FIXED_URL=$(absolute "$SHAPING_FIXED_URL")
 CBDT_FEMTOVG_URL=$(absolute "$CBDT_FEMTOVG_URL")
+HALFPIXEL_FEMTOVG_URL=$(absolute "$HALFPIXEL_FEMTOVG_URL")
+HALFPIXEL_FIXED_URL=$(absolute "$HALFPIXEL_FIXED_URL")
+EMOJISCALE_FEMTOVG_URL=$(absolute "$EMOJISCALE_FEMTOVG_URL")
+EMOJISCALE_FIXED_URL=$(absolute "$EMOJISCALE_FIXED_URL")
 
 cd "$(dirname "$0")"
 
@@ -128,6 +152,10 @@ checkout pathcache-fixed "$PATHCACHE_FIXED_URL" "$PATHCACHE_FIXED_REV"
 checkout shaping-master "$SHAPING_FEMTOVG_URL" "$SHAPING_MASTER_REV"
 checkout shaping-fixed "$SHAPING_FIXED_URL" "$SHAPING_FIXED_REV"
 checkout cbdt-master "$CBDT_FEMTOVG_URL" "$CBDT_MASTER_REV"
+checkout halfpixel-master "$HALFPIXEL_FEMTOVG_URL" "$HALFPIXEL_MASTER_REV"
+checkout halfpixel-fixed "$HALFPIXEL_FIXED_URL" "$HALFPIXEL_FIXED_REV"
+checkout emojiscale-master "$EMOJISCALE_FEMTOVG_URL" "$EMOJISCALE_MASTER_REV"
+checkout emojiscale-fixed "$EMOJISCALE_FIXED_URL" "$EMOJISCALE_FIXED_REV"
 
 # All builds read the fonts from the same files.
 roboto=femtovg/master/examples/assets/RobotoFlex-VariableFont.ttf
@@ -141,10 +169,16 @@ for font in "$NEW_YORK_DIR/NewYork.ttf" "$NEW_YORK_DIR/NewYorkItalic.ttf"; do
     fi
 done
 
-# One target directory for the fourteen crates, so that the dependencies are compiled once.
+emoji=yes
+if [ ! -f "$EMOJI_FONT" ]; then
+    echo "run.sh: $EMOJI_FONT is missing. The blocky-emoji scene is set in Apple Color Emoji, which comes with macOS; set EMOJI_FONT if it is somewhere else. The blocky-emoji scene is not drawn." >&2
+    emoji=no
+fi
+
+# One target directory for the eighteen crates, so that the dependencies are compiled once.
 CARGO_TARGET_DIR=$(pwd)/target
 export CARGO_TARGET_DIR
-for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master pathcache-master pathcache-fixed shaping-master shaping-fixed cbdt-default cbdt-swash; do
+for revision in master fixed spacing-master spacing-fixed gradient-master gradient-fixed shadow-master cutoff-master pathcache-master pathcache-fixed shaping-master shaping-fixed cbdt-default cbdt-swash halfpixel-master halfpixel-fixed emojiscale-master emojiscale-fixed; do
     (cd "crates/$revision" && cargo build --release --locked) || die "the build against femtovg/$revision failed"
 done
 bin=target/release
@@ -275,6 +309,27 @@ compose side wrap 0 0 466 316 side-by-side
 # The right end of the 10.09 px line of the size scene and of its cell.
 compose zoom size 548 132 112 34 zoom
 
+# The half-pixel scene prints the glyphs whose copies differ, on both revisions.
+for revision in master fixed; do
+    echo "halfpixel-$revision:"
+    "$bin/halfpixel-$revision" "$roboto" "out/halfpixel-$revision.png"
+done >out/halfpixel-summary.txt
+echo "halfpixel-master.png and halfpixel-fixed.png: $("$bin/compare" out/halfpixel-master.png out/halfpixel-fixed.png)" >>out/halfpixel-summary.txt
+master_checkout=halfpixel-master
+# The three grids, each next to the same grid with the fix, one pair to a row.
+"$bin/compose" pairs "$roboto" out/halfpixel-master.png "master ($(git -C femtovg/halfpixel-master rev-parse --short=7 HEAD))" out/halfpixel-fixed.png "with the fix" 0 984 134 100 152 3 out/halfpixel-pairs.png
+
+# The blocky-emoji scene prints nothing, so its summary has only the pixel comparison.
+if [ "$emoji" = yes ]; then
+    for revision in master fixed; do
+        "$bin/emojiscale-$revision" "$EMOJI_FONT" "$roboto" "out/emojiscale-$revision.png"
+    done
+    echo "emojiscale-master.png and emojiscale-fixed.png: $("$bin/compare" out/emojiscale-master.png out/emojiscale-fixed.png)" >out/emojiscale-summary.txt
+    master_checkout=emojiscale-master
+    # The whole scene.
+    compose side emojiscale 0 0 720 560 side-by-side
+fi
+
 echo
 for scene in $scenes; do
     echo "$scene, as femtovg/master draws it:"
@@ -294,6 +349,12 @@ echo "the path-cache scenes, as femtovg/pathcache-master and femtovg/pathcache-f
 sed 's/^/  /' out/pathcache-trace-summary.txt out/pathcache-bars-summary.txt
 echo "the shaping scenes, as femtovg/shaping-master and femtovg/shaping-fixed draw them:"
 sed 's/^/  /' out/size-summary.txt out/wrap-summary.txt
+echo "the half-pixel scene, as femtovg/halfpixel-master and femtovg/halfpixel-fixed draw it:"
+sed 's/^/  /' out/halfpixel-summary.txt
+if [ "$emoji" = yes ]; then
+    echo "the blocky-emoji scene, as femtovg/emojiscale-master and femtovg/emojiscale-fixed draw it:"
+    sed 's/^/  /' out/emojiscale-summary.txt
+fi
 
 echo
 echo "out/ compared with images/:"
@@ -339,6 +400,16 @@ done
 for file in cbdt-swash-row.png cbdt-figure.png cbdt-summary.txt cbdt-gap.ttf; do
     check "$file"
 done
+for file in halfpixel-master.png halfpixel-fixed.png halfpixel-pairs.png halfpixel-summary.txt; do
+    check "$file"
+done
+if [ "$emoji" = yes ]; then
+    for file in emojiscale-master.png emojiscale-fixed.png emojiscale-side-by-side.png emojiscale-summary.txt; do
+        check "$file"
+    done
+else
+    echo "  the blocky-emoji images were not made (see above)"
+fi
 [ "$scenes" = "about menu" ] || echo "  the menu images were not made (see above)"
 if [ "$different" -eq 0 ]; then
     echo "All $files files are identical to the committed ones."

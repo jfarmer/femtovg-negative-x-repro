@@ -1,4 +1,4 @@
-# femtovg: comparison images for eight bugs
+# femtovg: comparison images for ten bugs
 
 The [text frame benchmark](#the-text-frame-benchmark) measures the cost of drawing a Slint-like
 frame of text, labels or a scrolling table, on no renderer, OpenGL and WGPU, before and after a
@@ -9,7 +9,7 @@ direct-text gradient fix (#389), with draw/flush timing, allocation accounting,
 macOS Instruments capture, and a Linux `perf` collector.
 
 The programs that made the comparison images for four pull requests to
-[femtovg](https://github.com/femtovg/femtovg), for one fix that is not a pull request yet, and
+[femtovg](https://github.com/femtovg/femtovg), for three fixes that are not pull requests yet, and
 for three more bugs that have no fix yet. In each image for a pull request or a fix, the left half
 is a scene built against upstream master and the right half is the same scene built against the
 commit of its pull request or fix. Both halves are drawn at device pixel ratio 1 and nothing is
@@ -139,6 +139,38 @@ library row draws the bitmap that the library returns for a glyph, or the glyph'
 it returns none. Each femtovg row is what `fill_glyph_run` draws:
 
 ![What skrifa, swash, ttf-parser and two builds of femtovg give for a glyph without a bitmap](images/cbdt-figure.png)
+
+The ninth bug is the half-pixel bug. femtovg places each glyph that it draws from its glyph atlas
+at a whole pixel, but it does that before the canvas transform. Under a translation of half a
+pixel, the centre of each pixel then falls on the edge between two texels of the glyph's bitmap,
+and f32 rounding picks one of them. It picks differently for copies of a glyph at different
+places on the canvas, so one copy loses a row or column of the glyph and another draws one twice. The
+fix, which is not a pull request yet, places the glyphs at whole device pixels. Left: upstream
+master at
+[`19839d3`](https://github.com/femtovg/femtovg/commit/19839d3d781d68f23ce81f5e1e1c02235c3a82bd).
+The layout of the scene was chosen by trying a few (see below).
+
+Grids of d, g and o at 12 px under a translation of half a pixel right and down, Roboto Flex,
+with `swash`. Each grid on master is next to the same grid with the fix:
+
+![Grids of d, g and o on master and with the fix](images/halfpixel-pairs.png)
+
+The tenth bug is the blocky-emoji bug. When femtovg draws a glyph run as outlines (under a
+rotation, when the font size times the canvas scale is above 92, or with a gradient or image
+paint under a scale), it draws the run's PNG glyphs from an atlas at the font size, under the
+canvas transform. The transform enlarges each texel, and the atlas uses nearest filtering, so an
+emoji under a 6x scale is drawn as 6 x 6 blocks next to smooth letters. The fix, which is not a
+pull request yet, rasterizes these glyphs at the canvas scale. Left: upstream master at
+[`19839d3`](https://github.com/femtovg/femtovg/commit/19839d3d781d68f23ce81f5e1e1c02235c3a82bd).
+The scene was chosen by hand (see below).
+
+Two emoji and two letters at 20 px, under a 6x scale with a gradient paint (top) and turned and
+scaled 5x (bottom), Apple Color Emoji and Roboto Flex:
+
+![Emoji and letters under a scale on master and with the fix](images/emojiscale-side-by-side.png)
+
+The turned emoji with the fix have stair-stepped edges. The atlas still uses nearest filtering
+under a rotation, and the fix does not change that.
 
 `images/` also has each whole render, and a 4x enlargement of part of the About panel, of the
 menu card, of the shadow scene and of the size scene.
@@ -633,6 +665,86 @@ Nothing was searched for. These were chosen by hand:
 return for glyphs 1 and 2, and the colour drawn in the middle of glyph 1's triangle in every row. [`images/cbdt-gap.ttf`](images/cbdt-gap.ttf) is the font, for checking with other
 tools.
 
+## The half-pixel bug
+
+`GlyphAtlas::render_atlas` in `src/text.rs` places the quad of each glyph at `glyph.x.trunc()`
+and `glyph.y.round()`. `Canvas::draw_glyph_run` in `src/lib.rs` gives it the glyph positions in
+user space, and `draw_glyph_commands` maps the quads through the canvas transform after. When the
+transform translates by half a pixel, every quad lands half a pixel off the device pixel grid.
+The atlas textures are created with `ImageFlags::NEAREST`, so each pixel takes the texel that its
+centre falls in, and the centre of each pixel is exactly on the edge between two texels. The
+texture coordinate there is interpolated in f32, and the side of the edge it lands on changes
+with where the quad is. So one copy of a glyph takes each row of its bitmap from the row above,
+another from the row below, and another from a mix of the two, which drops one row and draws
+another twice.
+
+The fix, on the branch `atlas-device-space` at
+[`2a5e57d`](https://github.com/jfarmer/femtovg/commit/2a5e57d423d633540a361ab6b3050b82499cd1c9),
+maps the glyph positions through the canvas transform before `render_atlas` places the quads,
+and maps the quads back after, so that they land on whole device pixels.
+
+The scene draws two parts under one translation:
+
+```rust
+canvas.translate(0.5, 0.5);
+// The top part: each of 62 characters at 9, 12 and 16 px, 12 copies one below the other,
+// each in a 20 px square.
+canvas.fill_text(x + 4.0, y + 15.0, ch.to_string(), &paint)?;
+// Below it, at y = 980: three grids of d, g and o at 12 px, 14 copies across and 6 down,
+// 9 px apart across and 16 px down.
+canvas.fill_text(x, y + 12.0, ch.to_string(), &paint)?;
+```
+
+On master, 47 of the 186 glyphs of the top part are drawn in more than one way. The inner copies
+of the grids are drawn in 2 ways (d and o) and 8 ways (g). With the fix, every glyph and every
+grid is drawn in one way.
+
+### What was chosen to make the effect easy to see
+
+A few dozen layouts were tried and compared by eye. These were chosen:
+
+- A translation of half a pixel right and down. With half a pixel down only, the copies in a row
+  of a grid are all the same, and only the rows differ.
+- g, because it is the only one of the 62 characters whose copies differ along a row. d and o
+  differ from row to row.
+- Copies 9 px apart across and 16 px down. With rows 14 px apart, master cuts the bottom off
+  some rows, and the cut draws the eye instead of the differences in size and shape.
+- The grids drawn below the top part. Drawn alone, on canvases of several sizes and with the
+  atlas filled with other glyphs first, nearly every copy is the same on master too. Which part
+  of the top part the bug depends on is not known.
+- The `swash` feature, as Slint builds femtovg.
+
+[`src/halfpixel.rs`](src/halfpixel.rs) draws the scene, and `compose pairs` in
+[`src/compose.rs`](src/compose.rs) puts each grid next to the same grid with the fix.
+[`images/halfpixel-summary.txt`](images/halfpixel-summary.txt) lists the glyphs of the top part
+that each revision draws in more than one way, and the number of ways for each grid.
+
+## The blocky-emoji bug
+
+`Canvas::draw_glyph_run` in `src/lib.rs` draws a run as outlines (`render_direct`) when the
+canvas transform is not a uniform scale and a translation, when the font size times the scale is
+above 92, and when a gradient or image paint is under a scale. A PNG glyph has no outline, so it
+puts the run's PNG glyphs in its ephemeral atlas, rasterized at `paint.text.font_size`, and
+draws them under the canvas transform. The transform enlarges each bitmap, and the atlas is
+sampled with nearest filtering, so each texel is drawn as a block of pixels.
+
+The fix, on the branch `bake-scale-direct-png-glyphs` at
+[`ad045b0`](https://github.com/jfarmer/femtovg/commit/ad045b0c8715ea68ada901df51103a3aa9642bab),
+rasterizes these glyphs at the font size times the average scale of the canvas transform, and
+divides their quads by that scale before the canvas transform applies it.
+
+### What was chosen to make the effect easy to see
+
+Nothing was searched for. These were chosen by hand:
+
+- Scales of 6 and 5, so that each texel is a block several pixels wide.
+- A gradient paint under a scale in the top half and a rotation in the bottom half, two of the
+  ways a run is drawn as outlines.
+- Two letters in each run, drawn as outlines under the same transform, to compare with.
+- Apple Color Emoji, whose glyphs are PNGs. It comes with macOS.
+
+[`src/emojiscale.rs`](src/emojiscale.rs) draws the scene.
+
 ## The text frame benchmark
 
 [`textframe.sh`](textframe.sh) measures the cost of drawing one frame of text on two femtovg
@@ -730,7 +842,7 @@ runs each row measures. The binary takes `<glyph_run|fill_text> <frames> [void|g
 ```
 
 This needs git, cargo, a GPU that wgpu can use, and network access. The script checks out two
-femtovg revisions for each pull request and one each for the shadow scene, the cut-off scenes
+femtovg revisions for each pull request and fix and one each for the shadow scene, the cut-off scenes
 and the CBDT scene, builds the scenes against them, draws and composes the images into `out/`, and reports
 how many pixels differ from the files in `images/`. The committed images were made on macOS 26
 with wgpu on Metal. Another GPU or driver may give a few different pixels.
@@ -763,20 +875,34 @@ with wgpu on Metal. Another GPU or driver may give a few different pixels.
 | `SHAPING_FIXED_REV`   | `1668ea0f84f8d08f6034f842d80db7c92adbb27f` | the commit of the fix                                               |
 | `CBDT_FEMTOVG_URL`    | `https://github.com/femtovg/femtovg`       | where the revision with the CBDT gap bug is                         |
 | `CBDT_MASTER_REV`     | `9f5ad2614e922677a467e2d6f66fecba14d3a30a` | upstream master when the CBDT scene was written                     |
+| `HALFPIXEL_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`     | where the revision with the half-pixel bug is                       |
+| `HALFPIXEL_MASTER_REV` | `19839d3d781d68f23ce81f5e1e1c02235c3a82bd` | upstream master when the half-pixel scene was written              |
+| `HALFPIXEL_FIXED_URL` | `https://github.com/jfarmer/femtovg`       | where the revision with the fix of that bug is                      |
+| `HALFPIXEL_FIXED_REV` | `2a5e57d423d633540a361ab6b3050b82499cd1c9` | the commit of the fix                                               |
+| `EMOJISCALE_FEMTOVG_URL` | `https://github.com/femtovg/femtovg`    | where the revision with the blocky-emoji bug is                     |
+| `EMOJISCALE_MASTER_REV` | `19839d3d781d68f23ce81f5e1e1c02235c3a82bd` | upstream master when the blocky-emoji scene was written           |
+| `EMOJISCALE_FIXED_URL` | `https://github.com/jfarmer/femtovg`      | where the revision with the fix of that bug is                      |
+| `EMOJISCALE_FIXED_REV` | `ad045b0c8715ea68ada901df51103a3aa9642bab` | the commit of the fix                                              |
+| `EMOJI_FONT`          | `/System/Library/Fonts/Apple Color Emoji.ttc` | the emoji font of the blocky-emoji scene                         |
 
 The first four are for the About panel and the menu card, the next four for the specimen, the
 next four for the two gradient scenes, the next two for the shadow scene, the next two for the
 cut-off scenes, the next four for the two path-cache scenes, the next four for the two shaping
-scenes and the last two for the CBDT scene. A URL may be the path of a local clone. A revision is a full commit hash, or the
+scenes, the next two for the CBDT scene, the next four for the half-pixel scene and the last
+five for the blocky-emoji scene. A URL may be the path of a local clone. A revision is a full commit hash, or the
 name of a branch or tag. If a pull request or the fix has changed since this was written, run
 `FIXED_REV=glyph-mask-phase-keys ./run.sh`,
 `SPACING_FIXED_REV=letter-spacing-cache-key ./run.sh`,
 `GRADIENT_FIXED_REV=gradient-on-direct-text ./run.sh`,
-`PATHCACHE_FIXED_REV=path-cache-invalidation ./run.sh` or
-`SHAPING_FIXED_REV=shaping-cache-key ./run.sh`.
+`PATHCACHE_FIXED_REV=path-cache-invalidation ./run.sh`,
+`SHAPING_FIXED_REV=shaping-cache-key ./run.sh`,
+`HALFPIXEL_FIXED_REV=atlas-device-space ./run.sh` or
+`EMOJISCALE_FIXED_REV=bake-scale-direct-png-glyphs ./run.sh`.
 
 The only font file in this repository is `fonts/Roboto-Regular.ttf` (Apache-2.0, see its
 `.license` file), which the text frame benchmark uses. Roboto Flex is read from femtovg's
 `examples/assets`.
 New York is an Apple system font, read from `/System/Library/Fonts` or from `NEW_YORK_DIR`.
 Where it is missing, the menu card is not drawn.
+Apple Color Emoji is an Apple system font too, read from `EMOJI_FONT`. Where it is missing, the
+blocky-emoji scene is not drawn.

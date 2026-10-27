@@ -1,0 +1,20 @@
+# The blocky-emoji scene built against the femtovg checkout in femtovg/emojiscale-master, which
+# run.sh makes, with femtovg's default features.
+[package]
+name = "repro-emojiscale-master"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "emojiscale-master"
+path = "../../src/emojiscale.rs"
+
+[dependencies]
+femtovg = { path = "../../femtovg/emojiscale-master", features = ["wgpu"] }
+wgpu = "30.0.0"
+pollster = "1.0"
+image = { version = "0.25.0", default-features = false, features = ["png"] }
+ttf-parser = "=0.25.1"

@@ -1,0 +1,58 @@
+halfpixel-master:
+12 px a: 2 ways
+12 px b: 2 ways
+12 px c: 2 ways
+12 px d: 4 ways
+12 px e: 2 ways
+12 px f: 2 ways
+12 px g: 4 ways
+12 px i: 2 ways
+12 px j: 2 ways
+12 px m: 2 ways
+12 px n: 2 ways
+12 px o: 4 ways
+12 px p: 2 ways
+12 px q: 4 ways
+12 px r: 2 ways
+12 px s: 2 ways
+12 px u: 2 ways
+12 px v: 2 ways
+12 px x: 2 ways
+12 px y: 4 ways
+12 px z: 2 ways
+12 px A: 2 ways
+12 px J: 4 ways
+12 px M: 2 ways
+12 px S: 3 ways
+12 px W: 4 ways
+12 px X: 4 ways
+12 px Y: 4 ways
+12 px 0: 3 ways
+12 px 3: 3 ways
+12 px 5: 3 ways
+12 px 6: 3 ways
+12 px 8: 3 ways
+16 px j: 2 ways
+16 px u: 2 ways
+16 px v: 2 ways
+16 px x: 2 ways
+16 px z: 2 ways
+16 px A: 2 ways
+16 px C: 3 ways
+16 px G: 3 ways
+16 px H: 2 ways
+16 px K: 2 ways
+16 px N: 2 ways
+16 px V: 3 ways
+16 px X: 2 ways
+16 px Y: 2 ways
+glyphs drawn in more than one way: 47 of 186
+grid of d: the inner copies are drawn in 2 ways
+grid of g: the inner copies are drawn in 8 ways
+grid of o: the inner copies are drawn in 2 ways
+halfpixel-fixed:
+glyphs drawn in more than one way: 0 of 186
+grid of d: the inner copies are drawn in 1 ways
+grid of g: the inner copies are drawn in 1 ways
+grid of o: the inner copies are drawn in 1 ways
+halfpixel-master.png and halfpixel-fixed.png: 133106 of 1052160 pixels differ, by at most 255/255 in one channel
