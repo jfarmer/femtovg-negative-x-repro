@@ -906,3 +906,7 @@ New York is an Apple system font, read from `/System/Library/Fonts` or from `NEW
 Where it is missing, the menu card is not drawn.
 Apple Color Emoji is an Apple system font too, read from `EMOJI_FONT`. Where it is missing, the
 blocky-emoji scene is not drawn.
+
+## Compound-path zoom comparisons
+
+[Watch the QR label sheet](images/contour-motion/labels.mp4) or [the six-map atlas](images/contour-motion/atlas.mp4). Both show the same zoom gesture on master and with indexed contour winding. The [generator and recorded timings](contour-motion/) reproduce the comparisons.
