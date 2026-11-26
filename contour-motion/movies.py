@@ -129,6 +129,7 @@ for name, title, sub in [
         stdin=sp.PIPE,
     )
     imgs = {}
+    preview = []
     for j in range(600):
         frame = base.copy()
         for idx, tag in enumerate(tags):
@@ -137,6 +138,9 @@ for name, title, sub in [
                 with Image.open(paths[tag][i]) as im:
                     imgs[i] = im.convert("RGB")
             frame.paste(imgs[i], (16 + 736 * idx, 132))
+        # One complete zoom cycle at the same 60 Hz as the full-size clip.
+        if j < 150:
+            preview.append(frame.resize((960, 432), Image.Resampling.LANCZOS))
         proc.stdin.write(frame.tobytes())
     proc.stdin.close()
     assert proc.wait() == 0
@@ -173,4 +177,16 @@ for name, title, sub in [
             str(out / (name + ".mp4")),
         ],
         check=True,
+    )
+
+    # Quantize refresh deadlines, not individual durations, to whole milliseconds.
+    ticks = [round(i * 1000 / 60) for i in range(len(preview) + 1)]
+    preview[0].save(
+        out / (name + ".webp"),
+        save_all=True,
+        append_images=preview[1:],
+        duration=[end - start for start, end in zip(ticks, ticks[1:])],
+        loop=0,
+        quality=72,
+        method=4,
     )
