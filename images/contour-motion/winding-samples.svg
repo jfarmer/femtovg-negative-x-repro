@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="475" viewBox="0 0 760 475" role="img" aria-labelledby="title desc">
+  <title id="title">Finding candidate samples for the outer square</title>
+  <desc id="desc">Five squares have first-edge midpoints at x coordinates 2, 18, 20, 24, and 40. The outer square spans x=10..30. Its x range contains 18, 20, and 24. The sample at 20 belongs to the outer square itself, and the sample at 24 is above it. Only the sample at 18, on the inner square, needs the outer square's winding contribution.</desc>
+  <rect width="760" height="475" rx="10" fill="#fff"/>
+  <g font-family="system-ui, sans-serif" fill="#1d3138">
+    <text x="28" y="35" font-size="21" font-weight="600">Which samples can the outer square contain?</text>
+    <!-- The x projection uses 14 pixels per unit, with x=0 at pixel 80. -->
+    <path d="M220 110H500V390H220Z M290 202H374V286H290Z" fill-rule="evenodd" fill="#d9eeea" stroke="#295958" stroke-width="2"/>
+    <g fill="#edf1f3" stroke="#53666f" stroke-width="2">
+      <rect x="80" y="222" width="56" height="56"/>
+      <rect x="395" y="52" width="42" height="42"/>
+      <rect x="612" y="222" width="56" height="56"/>
+    </g>
+    <g fill="none" stroke="#798e94" stroke-dasharray="3 5">
+      <path d="M108 222V423 M332 202V423 M360 110V423 M416 52V423 M640 222V423"/>
+    </g>
+    <text x="232" y="139" font-size="15">outer square</text>
+    <text x="332" y="253" text-anchor="middle" font-size="15">hole</text>
+    <text x="447" y="78" font-size="14">above the outer square</text>
+    <g fill="#9a4822" stroke="#fff" stroke-width="1.5">
+      <circle cx="108" cy="222" r="5.5"/><circle cx="332" cy="202" r="5.5"/>
+      <circle cx="360" cy="110" r="5.5"/><circle cx="416" cy="52" r="5.5"/>
+      <circle cx="640" cy="222" r="5.5"/>
+    </g>
+    <path d="M70 423H693" stroke="#788a8f"/>
+    <path d="M220 416V423H500V416" fill="none" stroke="#167468" stroke-width="3"/>
+    <g text-anchor="middle" font-size="15" font-family="monospace">
+      <text x="108" y="445">2</text><text x="332" y="445">18</text>
+      <text x="360" y="445">20</text><text x="416" y="445">24</text><text x="640" y="445">40</text>
+    </g>
+    <text x="360" y="466" text-anchor="middle" font-size="14" fill="#175c54">outer square’s x range: 10..30</text>
+    <text x="700" y="429" font-size="16">x</text>
+  </g>
+</svg>
