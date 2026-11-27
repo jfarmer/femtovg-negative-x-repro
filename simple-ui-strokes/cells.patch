@@ -1,0 +1,43 @@
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -242,5 +242,39 @@
+     let main_window = MainWindow::new().unwrap();
+     let cells_model = CellsModel::new();
+     main_window.set_cells(ModelRc::from(cells_model));
++    use std::time::{Duration, Instant};
++    let frames = Rc::new(RefCell::new(Vec::<f64>::new()));
++    let times = frames.clone();
++    let costs = Rc::new(RefCell::new(Vec::new()));
++    let out = costs.clone();
++    let mut began = None;
++    let start = Instant::now();
++    main_window.window().set_rendering_notifier(move |state, _| {
++        if matches!(state, slint::RenderingState::BeforeRendering) { began = Some(Instant::now()); }
++        if matches!(state, slint::RenderingState::AfterRendering) {
++            if let Some(t) = began.take() { out.borrow_mut().push((start.elapsed().as_secs_f64(), t.elapsed().as_secs_f64()*1000.0)); }
++            times.borrow_mut().push(start.elapsed().as_secs_f64());
++        }
++    }).unwrap();
++    main_window.show().unwrap();
++    main_window.window().set_size(slint::LogicalSize::new(1440.0, 850.0));
++    let weak = main_window.as_weak();
++    let timer = slint::Timer::default();
++    let mut prev = 0.0;
++    timer.start(slint::TimerMode::Repeated, Duration::from_millis(5), move || {
++        let t = start.elapsed().as_secs_f64();
++        if t < 2.0 { return; }
++        if t >= 8.0 { slint::quit_event_loop().unwrap(); return; }
++        if prev == 0.0 { eprintln!("scroll size {:?}", weak.upgrade().unwrap().window().size()); }
++        let target = if t < 5.0 { (t-2.0)*650.0 } else { (8.0-t)*650.0 };
++        let app = weak.upgrade().unwrap();
++        app.window().dispatch_event(slint::platform::WindowEvent::PointerScrolled {
++            position: slint::LogicalPosition::new(325.0, 280.0),
++            delta_x: 0.0, delta_y: (prev-target) as f32,
++        });
++        prev = target;
++    });
+     main_window.run().unwrap();
+-}
++    eprintln!("window {:?}, scale {}", main_window.window().size(), main_window.window().scale_factor());
++    for (t,ms) in costs.borrow().iter() { println!("{t:.6} {ms:.6}"); }
++}
