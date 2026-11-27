@@ -1,0 +1,22 @@
+[workspace]
+
+[package]
+name = "settings-labels"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+femtovg = { path = "../femtovg", default-features = false, features = ["swash"] }
+ttf-parser = "0.25.1"
+wgpu = { version = "30", default-features = false, features = ["metal", "wgsl", "std"], optional = true }
+pollster = { version = "1", optional = true }
+
+[features]
+mixed = ["femtovg/textlayout"]
+metal = ["femtovg/wgpu", "dep:wgpu", "dep:pollster"]
+
+[[bin]]
+name = "metal"
+path = "src/bin/metal.rs"
+required-features = ["metal"]
